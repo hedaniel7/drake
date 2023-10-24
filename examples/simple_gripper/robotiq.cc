@@ -39,16 +39,6 @@ int do_main() {
   std::string with_mimic = R"""(
 directives:
 - add_model:
-    name: robotiq
-    file: package://movo_description/urdf/manipulation/robotiq/robotiq_85_gripper.urdf
-
-- add_weld:
-    parent: world
-    child: robotiq::robotiq_coupler_link
-    X_PC:
-        rotation: !Rpy { deg: [90.0, 0.0, -90.0 ]}
-
-- add_model:
     name: spam
     file: package://drake/manipulation/models/ycb/sdf/010_potted_meat_can.sdf
     default_free_body_pose: { base_link_meat: { 
@@ -62,12 +52,19 @@ directives:
     
 - add_weld:
     parent: world
-    child: table::link
+    child: table::table_link
     X_PC:
         translation: [0.0, 0.0, -0.81]
 )""";
 
   parser.AddModelsFromString(with_mimic, "dmd.yaml");
+  parser.AddModelsFromUrl(
+      "package://drake/examples/simple_gripper/robotiq_85_gripper.urdf");
+  plant.WeldFrames(
+      plant.world_frame(),
+      plant.GetBodyByName("robotiq_coupler_link").body_frame(),
+      math::RigidTransformd(math::RollPitchYawd(-M_PI / 2.0, 0, M_PI / 2.0),
+                            Eigen::Vector3d::Zero()));
 
   plant.Finalize();
 

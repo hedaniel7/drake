@@ -14,6 +14,7 @@ filegroup(
     srcs = [
         "simple_gripper.sdf",
         "simple_mug.sdf",
+        "robotiq_85_gripper.urdf",
     ],
     visibility = ["//visibility:public"],
 )
@@ -53,6 +54,7 @@ drake_cc_binary(
     data = [
       "//examples/kuka_iiwa_arm:models",
       "//manipulation/models/ycb:models",
+      "robotiq_85_gripper.urdf",
     ],
     deps = [
         "//geometry:meshcat",

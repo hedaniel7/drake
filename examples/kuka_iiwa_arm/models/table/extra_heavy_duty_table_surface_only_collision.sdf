@@ -8,7 +8,7 @@
     involving the table due to a decrease in number of collision
     checks needed.
     -->
-    <link name="link">
+    <link name="table_link">
       <inertial>
         <mass>53.5</mass>
         <!--
@@ -169,51 +169,13 @@
             <size>0.7112 0.762 0.057</size>
           </box>
         </geometry>
-        <surface>
-          <friction>
-            <ode>
-              <mu>0.6</mu>
-              <mu2>0.6</mu2>
-              <fdir1>0 0 0</fdir1>
-              <slip1>0</slip1>
-              <slip2>0</slip2>
-            </ode>
-            <torsional>
-              <coefficient>1</coefficient>
-              <patch_radius>0</patch_radius>
-              <surface_radius>0</surface_radius>
-              <use_patch_radius>1</use_patch_radius>
-              <ode>
-                <slip>0</slip>
-              </ode>
-            </torsional>
-          </friction>
-          <bounce>
-            <restitution_coefficient>0</restitution_coefficient>
-            <threshold>1e+06</threshold>
-          </bounce>
-          <contact>
-            <collide_without_contact>0</collide_without_contact>
-            <collide_without_contact_bitmask>1</collide_without_contact_bitmask>
-            <collide_bitmask>1</collide_bitmask>
-            <ode>
-              <soft_cfm>0</soft_cfm>
-              <soft_erp>0.2</soft_erp>
-              <kp>1e+13</kp>
-              <kd>1</kd>
-              <max_vel>0.01</max_vel>
-              <min_depth>0</min_depth>
-            </ode>
-            <bullet>
-              <split_impulse>1</split_impulse>
-              <split_impulse_penetration_threshold>-0.01</split_impulse_penetration_threshold>
-              <soft_cfm>0</soft_cfm>
-              <soft_erp>0.2</soft_erp>
-              <kp>1e+13</kp>
-              <kd>1</kd>
-            </bullet>
-          </contact>
-        </surface>
+        <drake:proximity_properties>
+          <drake:compliant_hydroelastic/>
+          <drake:hydroelastic_modulus>5.0e4</drake:hydroelastic_modulus>
+          <drake:relaxation_time> 1.0 </drake:relaxation_time>
+          <drake:mu_dynamic> 0.5 </drake:mu_dynamic>
+          <drake:mu_static> 0.5 </drake:mu_static>
+        </drake:proximity_properties>
       </collision>
     </link>
     <frame name="top_center">
@@ -222,7 +184,7 @@
       causes RBT SDFormat parsing code to segfault. Remove this once RBT is
       removed.
       -->
-      <pose relative_to="link">0 0 0.7645 0 0 0</pose>
+      <pose relative_to="table_link">0 0 0.7645 0 0 0</pose>
     </frame>
     <!--
     N.B. This model used to have <static>true</static>, but this creates

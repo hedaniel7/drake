@@ -51,70 +51,13 @@
             <size>0.095600 0.077500 0.051600</size>
           </box>
         </geometry>
-      </collision>
-      <collision name="point_collision1">
-        <pose>0.048300 0.039250 0.026300 0 0 0 </pose>
-        <geometry>
-          <sphere>
-            <radius>1e-7</radius>
-          </sphere>
-        </geometry>
-      </collision>
-      <collision name="point_collision2">
-        <pose>0.048300 -0.039250 0.026300 0 0 0 </pose>
-        <geometry>
-          <sphere>
-            <radius>1e-7</radius>
-          </sphere>
-        </geometry>
-      </collision>
-      <collision name="point_collision3">
-        <pose>-0.048300 0.039250 0.026300 0 0 0 </pose>
-        <geometry>
-          <sphere>
-            <radius>1e-7</radius>
-          </sphere>
-        </geometry>
-      </collision>
-      <collision name="point_collision4">
-        <pose>-0.048300 -0.039250 0.026300 0 0 0 </pose>
-        <geometry>
-          <sphere>
-            <radius>1e-7</radius>
-          </sphere>
-        </geometry>
-      </collision>
-      <collision name="point_collision5">
-        <pose>0.048300 0.039250 -0.026300 0 0 0 </pose>
-        <geometry>
-          <sphere>
-            <radius>1e-7</radius>
-          </sphere>
-        </geometry>
-      </collision>
-      <collision name="point_collision6">
-        <pose>0.048300 -0.039250 -0.026300 0 0 0 </pose>
-        <geometry>
-          <sphere>
-            <radius>1e-7</radius>
-          </sphere>
-        </geometry>
-      </collision>
-      <collision name="point_collision7">
-        <pose>-0.048300 0.039250 -0.026300 0 0 0 </pose>
-        <geometry>
-          <sphere>
-            <radius>1e-7</radius>
-          </sphere>
-        </geometry>
-      </collision>
-      <collision name="point_collision8">
-        <pose>-0.048300 -0.039250 -0.026300 0 0 0 </pose>
-        <geometry>
-          <sphere>
-            <radius>1e-7</radius>
-          </sphere>
-        </geometry>
+        <drake:proximity_properties>
+          <drake:compliant_hydroelastic/>
+          <drake:hydroelastic_modulus>5.0e4</drake:hydroelastic_modulus>
+          <drake:relaxation_time> 1.0 </drake:relaxation_time>
+          <drake:mu_dynamic> 0.5 </drake:mu_dynamic>
+          <drake:mu_static> 0.5 </drake:mu_static>
+        </drake:proximity_properties>
       </collision>
     </link>
   </model>
