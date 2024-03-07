@@ -10,7 +10,7 @@ def _impl(repo_ctx):
         "mumps_seq/mpif.h",
     ]
     for hdr in hdrs:
-        repo_ctx.symlink("/usr/include/" + hdr, "include/" + hdr)
+        repo_ctx.symlink("/usr/include/mumps/" + hdr, "include/" + hdr) # Changed this for OpenSUSE integration
 
     # Add the BUILD file.
     repo_ctx.symlink(
