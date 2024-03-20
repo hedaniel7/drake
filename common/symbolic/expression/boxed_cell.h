@@ -360,6 +360,8 @@ class BoxedCell {
   // Leaving it non-redundantly initialized here is slightly faster.
   double value_;
 #endif
+
+  int fmt_v801_padding_;
 };
 
 }  // namespace internal

@@ -644,6 +644,12 @@ def main():
     add_library_paths(parameters)
     filenames = []
 
+    '''parameters.extend([
+        "-I/usr/lib64/gcc/x86_64-suse-linux/10/include" 
+    ])'''
+    # Change Visual Studio
+
+
     quiet = False
     std = '-std=c++11'
     root_name = 'mkdoc_doc'

@@ -1,0 +1,9 @@
+--- a/common/symbolic/expression/boxed_cell.h
++++ b/common/symbolic/expression/boxed_cell.h
+@@ -360,6 +360,8 @@ class BoxedCell {
+   // Leaving it non-redundantly initialized here is slightly faster.
+   double value_;
+ #endif
++
++  int fmt_v801_padding_;
+ };

@@ -52,16 +52,23 @@ drake_py_library(
     ],
 )
 
-generate_pybind_documentation_header(
-    name = "generate_pybind_documentation_header",
-    out = "documentation_pybind.h",
-    # Anonymous namespace and deduction guides both confuse pybind.
-    exclude_hdr_patterns = ["drake/common/overloaded.h"],
-    root_name = "pydrake_doc",
-    targets = [
-        "//tools/install/libdrake:drake_headers",
-    ],
-)
+# Commented out. This is a Workaround for the clang error
+# suggested from J. Nimmer
+# run a build of Drake (of the same version) on a supported platform
+#to create the bazel-bin/bindings/pydrake/documentation_pybind.h header file on
+#that platform, and then copy that file into
+#/bindings/pydrake/documentation_pybind.h in the SUSE platform's Drake source
+# tree - which I did
+#generate_pybind_documentation_header(
+#    name = "generate_pybind_documentation_header",
+#    out = "documentation_pybind.h",
+#    # Anonymous namespace and deduction guides both confuse pybind.
+#    exclude_hdr_patterns = ["drake/common/overloaded.h"],
+#    root_name = "pydrake_doc",
+#    targets = [
+#        "//tools/install/libdrake:drake_headers",
+#    ],
+#)
 
 drake_cc_library(
     name = "documentation_pybind",

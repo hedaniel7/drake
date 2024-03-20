@@ -37,10 +37,14 @@ def add_library_paths(parameters=None):
                 parameters.append('-isysroot')
                 parameters.append(sdkroot)
     elif platform.system() == 'Linux':
-        # We expect Clang 14 to be installed.
+        # Original code
+        '''# We expect Clang 14 to be installed.
         version = 14
         arch = platform.machine()
-        library_file = f'/usr/lib/{arch}-linux-gnu/libclang-{version}.so'
+        library_file = f'/usr/lib/{arch}-linux-gnu/libclang-{version}.so'''
+
+        # Drake OpenSUSE integration code
+        library_file = '/home/dan/clang14.0.0.-build/lib/libclang.so.14.0.0'
     if not os.path.exists(library_file):
         raise RuntimeError(f'Library file {library_file} does NOT exist')
     cindex.Config.set_library_file(library_file)
