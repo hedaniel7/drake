@@ -110,6 +110,9 @@
       <material name="">
         <color rgba="0.9 0.0 0.0 1"/>
       </material>
+      <drake:proximity_properties>
+        <drake:rigid_hydroelastic/>
+      </drake:proximity_properties>
     </collision>
   </link>
   <link name="left_inner_knuckle">
@@ -218,6 +221,9 @@
       <material name="">
         <color rgba="0.9 0.0 0.0 1"/>
       </material>
+      <drake:proximity_properties>
+        <drake:rigid_hydroelastic/>
+      </drake:proximity_properties>
     </collision>
   </link>
   <link name="right_inner_knuckle">
@@ -320,6 +326,22 @@
     </joint>
     <actuator name="finger_joint_motor">
       <mechanicalReduction>1</mechanicalReduction>
+      <drake:rotor_inertia value="1e-6"/>
+      <drake:gear_ratio value="300"/>
     </actuator>
   </transmission>
+    <drake:collision_filter_group name="finger_1">
+      <drake:member link="left_outer_knuckle"/>
+      <drake:member link="left_outer_finger"/>
+      <drake:member link="left_inner_finger"/>
+      <drake:member link="left_inner_knuckle"/>
+      <drake:ignored_collision_filter_group name="finger_1"/>
+    </drake:collision_filter_group>
+    <drake:collision_filter_group name="finger_2">
+      <drake:member link="right_outer_knuckle"/>
+      <drake:member link="right_outer_finger"/>
+      <drake:member link="right_inner_finger"/>
+      <drake:member link="right_inner_knuckle"/>
+      <drake:ignored_collision_filter_group name="finger_2"/>
+    </drake:collision_filter_group>
 </robot>

@@ -67,7 +67,7 @@ directives:
                     plant.WeldFrames(
                             plant.world_frame(),
                             plant.GetBodyByName("robotiq_arg2f_base_link").body_frame(),
-                            math::RigidTransformd(math::RollPitchYawd(0, 0, M_PI / 2.0),
+                            math::RigidTransformd(math::RollPitchYawd(M_PI , 0, 0),
                                                   Eigen::Vector3d(0.2, 0, 0.2)));
 
                     plant.Finalize();
