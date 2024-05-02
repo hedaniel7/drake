@@ -44,8 +44,8 @@ namespace drake {
 directives:
 - add_model:
     name: spam
-    file: package://drake/examples/simple_gripper/010_potted_meat_can.sdf
-    default_free_body_pose: { base_link_meat: {
+    file: package://drake/examples/simple_gripper/mesh.sdf
+    default_free_body_pose: { base_link: {
         translation: [0.2, 0.01, 0.0],
         rotation: !Rpy { deg: [-90.0, 0.0, 0.0 ]}
     } }
