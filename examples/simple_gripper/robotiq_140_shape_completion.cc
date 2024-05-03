@@ -67,12 +67,12 @@ directives:
                     plant.WeldFrames(
                             plant.world_frame(),
                             plant.GetBodyByName("robotiq_arg2f_base_link").body_frame(),
-                            math::RigidTransformd(math::RollPitchYawd(M_PI , 0, 0),
+                            math::RigidTransformd(math::RollPitchYawd(M_PI , 0, M_PI),
                                                   Eigen::Vector3d(0.2, 0, 0.21)));
 
                     plant.Finalize();
 
-                    auto torque = builder.AddSystem<systems::ConstantVectorSource>(Vector1d(1));
+                    auto torque = builder.AddSystem<systems::ConstantVectorSource>(Vector1d(2));
                     builder.Connect(torque->get_output_port(), plant.get_actuation_input_port());
 
                     visualization::AddDefaultVisualization(&builder, meshcat);
