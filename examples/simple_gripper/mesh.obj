@@ -1,6 +1,5 @@
 # Blender v3.0.1 OBJ File: 'untitled.blend'
 # www.blender.org
-mtllib mesh_bisected.mtl
 o mesh
 v -0.064287 -0.020399 0.119483
 v -0.064388 -0.019057 0.098235
