@@ -84,32 +84,33 @@ directives:
 
                     auto diagram = builder.Build();
 
-// Set up simulator.
+                    // Set up simulator.
                     systems::Simulator simulator(*diagram);
 
                     meshcat->StartRecording(32.0, false);
                     simulator.AdvanceTo(20.0);
                     meshcat->PublishRecording();
 
-// Get the final context of the simulation
                     const auto& final_context = simulator.get_context();
 
-// Get the subsystem context for the MultibodyPlant system
                     const auto& plant_context = diagram->GetSubsystemContext(plant, final_context);
 
-// Extract contact forces at the end of the simulation
                     const ContactResults<double>& contact_results =
                             plant.get_contact_results_output_port().Eval<ContactResults<double>>(plant_context);
 
-                    std::cout << "Contact forces at the end of the simulation:" << std::endl;
+                    std::cout << "Contact forces and centroids at the end of the simulation:" << std::endl;
                     for (int i = 0; i < contact_results.num_hydroelastic_contacts(); ++i) {
                         const HydroelasticContactInfo<double>& info =
                                 contact_results.hydroelastic_contact_info(i);
 
-                        const Vector3d& force_C_W = info.F_Ac_W().translational();
+                        const Vector3d& F_Ac_W = info.F_Ac_W().translational();
+                        const Vector3d& p_WC = info.contact_surface().centroid();
 
                         std::cout << "Contact " << i << ":" << std::endl;
-                        std::cout << "  Force (C, W): [" << force_C_W.x() << ", " << force_C_W.y() << ", " << force_C_W.z() << "]" << std::endl;
+                        //Force applied on body A, at the centroid point C, expressed in the world frame W
+                        std::cout << "  F_Ac_W: [" << F_Ac_W.x() << ", " << F_Ac_W.y() << ", " << F_Ac_W.z() << "]" << std::endl;
+                        //position p_WC of the centroid point C in the world frame W
+                        std::cout << "  p_WC: [" << p_WC.x() << ", " << p_WC.y() << ", " << p_WC.z() << "]" << std::endl;
                     }
 
 
