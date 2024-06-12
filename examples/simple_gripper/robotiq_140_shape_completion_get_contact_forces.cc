@@ -105,12 +105,15 @@ directives:
 
                         const Vector3d& F_Ac_W = info.F_Ac_W().translational();
                         const Vector3d& p_WC = info.contact_surface().centroid();
+                        const Vector3d& tau_Ac_W = info.F_Ac_W().rotational();
 
                         std::cout << "Contact " << i << ":" << std::endl;
                         //Force applied on body A, at the centroid point C, expressed in the world frame W
                         std::cout << "  F_Ac_W: [" << F_Ac_W.x() << ", " << F_Ac_W.y() << ", " << F_Ac_W.z() << "]" << std::endl;
                         //position p_WC of the centroid point C in the world frame W
                         std::cout << "  p_WC: [" << p_WC.x() << ", " << p_WC.y() << ", " << p_WC.z() << "]" << std::endl;
+                        // Moment
+                        std::cout << "  tau_Ac_W: [" << tau_Ac_W.x() << ", " << tau_Ac_W.y() << ", " << tau_Ac_W.z() << "]" << std::endl;
                     }
 
 
