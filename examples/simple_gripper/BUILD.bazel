@@ -166,5 +166,4 @@ drake_cc_binary(
     ],
 )
 
-
 add_lint_tests()
