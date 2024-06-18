@@ -7,6 +7,7 @@
 #include "drake/common/eigen_types.h"
 #include "drake/multibody/parsing/parser.h"
 #include "drake/multibody/parsing/package_map.h"
+#include "drake/multibody/plant/externally_applied_spatial_force.h"
 #include "drake/multibody/plant/multibody_plant.h"
 #include "drake/multibody/parsing/collision_filter_groups.h"
 #include "drake/systems/analysis/simulator.h"
@@ -15,6 +16,54 @@
 #include "drake/visualization/visualization_config_functions.h"
 #include "drake/multibody/plant/discrete_contact_pair.h"
 #include "drake/multibody/plant/contact_results.h"
+#include "drake/math/rigid_transform.h"
+
+namespace drake {
+    namespace multibody {
+
+        class ExternalForceApplicator : public systems::LeafSystem<double> {
+        public:
+            explicit ExternalForceApplicator(const MultibodyPlant<double>* plant);
+
+        private:
+            void CalcSpatialForceOutput(
+                    [[maybe_unused]] const systems::Context<double>& context,
+                    std::vector<drake::multibody::ExternallyAppliedSpatialForce<double>>* output) const;
+
+            const MultibodyPlant<double>* plant_{nullptr};
+        };
+
+        ExternalForceApplicator::ExternalForceApplicator(const MultibodyPlant<double>* plant)
+                : plant_(plant) {
+            this->DeclareAbstractOutputPort(
+                    "spatial_force_output",
+                    &ExternalForceApplicator::CalcSpatialForceOutput);
+        }
+
+        void ExternalForceApplicator::CalcSpatialForceOutput(
+                [[maybe_unused]] const systems::Context<double>& context,
+                std::vector<drake::multibody::ExternallyAppliedSpatialForce<double>>* output) const {
+
+            const double g = UniformGravityFieldElement<double>::kDefaultStrength;
+
+            const RigidBody<double>& object =
+                    dynamic_cast<const RigidBody<double>&>(plant_->GetBodyByName("base_link"));
+
+            const BodyIndex object_body_index = object.index();
+            const Vector3<double> object_com = object.default_com();
+
+            const Vector3<double> up_W(0, 0, 1);
+            const SpatialForce<double> F_object_com_W(Vector3<double>::Zero() /* no torque */,
+                                                      10 * object.default_mass() * g / 2 * up_W);
+
+            output->resize(1 /* number of forces */);
+            (*output)[0].body_index = object_body_index;
+            (*output)[0].p_BoBq_B = object_com;
+            (*output)[0].F_Bq_W = F_object_com_W;
+        }
+
+    }  // namespace multibody
+}  // namespace drake
 
 namespace drake {
     namespace examples {
@@ -51,7 +100,7 @@ directives:
     name: spam
     file: package://drake/examples/simple_gripper/mesh.sdf
     default_free_body_pose: { base_link: {
-        translation: [0.2, 0.05, 0.00],
+        translation: [-0.2, 0.05, 0.00],
         rotation: !Rpy { deg: [90.0, 0.0, 0.0 ]}
     } }
 
@@ -82,6 +131,16 @@ directives:
 
                     visualization::AddDefaultVisualization(&builder, meshcat);
 
+                    // Apply a force to the grasped object
+
+                    // Create an ExternalForceApplicator instance
+                    auto external_force_applicator_ =
+                            builder.AddSystem<drake::multibody::ExternalForceApplicator>(&plant);
+
+                    // Connect the external force applicator system to the MBP.
+                    builder.Connect(external_force_applicator_->get_output_port(0),
+                                    plant.get_applied_spatial_force_input_port());
+
                     auto diagram = builder.Build();
 
                     // Set up simulator.
@@ -92,7 +151,6 @@ directives:
                     meshcat->PublishRecording();
 
                     const auto& final_context = simulator.get_context();
-
                     const auto& plant_context = diagram->GetSubsystemContext(plant, final_context);
 
                     const ContactResults<double>& contact_results =
@@ -108,14 +166,13 @@ directives:
                         const Vector3d& tau_Ac_W = info.F_Ac_W().rotational();
 
                         std::cout << "Contact " << i << ":" << std::endl;
-                        //Force applied on body A, at the centroid point C, expressed in the world frame W
+                        // Force applied on body A, at the centroid point C, expressed in the world frame W
                         std::cout << "  F_Ac_W: [" << F_Ac_W.x() << ", " << F_Ac_W.y() << ", " << F_Ac_W.z() << "]" << std::endl;
-                        //position p_WC of the centroid point C in the world frame W
+                        // Position p_WC of the centroid point C in the world frame W
                         std::cout << "  p_WC: [" << p_WC.x() << ", " << p_WC.y() << ", " << p_WC.z() << "]" << std::endl;
                         // Moment
                         std::cout << "  tau_Ac_W: [" << tau_Ac_W.x() << ", " << tau_Ac_W.y() << ", " << tau_Ac_W.z() << "]" << std::endl;
                     }
-
 
                     // Pause so that you can see the meshcat output.
                     std::cout << "[Press Ctrl-C to finish]." << std::endl;
