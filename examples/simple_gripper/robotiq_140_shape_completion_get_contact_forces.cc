@@ -31,8 +31,8 @@ namespace drake {
                     std::vector<drake::multibody::ExternallyAppliedSpatialForce<double>>* output) const;
 
             const MultibodyPlant<double>* plant_{nullptr};
-            double force_start_time_{0.0};  // Start time for applying force
-            double force_end_time_{3.0};    // End time for applying force
+            double force_start_time_{10.0};  // Start time for applying force
+            double force_end_time_{20.0};    // End time for applying force
         };
 
         ExternalForceApplicator::ExternalForceApplicator(const MultibodyPlant<double>* plant)
@@ -59,8 +59,9 @@ namespace drake {
                 const Vector3<double> object_com = object.default_com();
 
                 const Vector3<double> up_W(0, 0, 1);
+                const Vector3<double> x_W(1, 0, 0);
                 const SpatialForce<double> F_object_com_W(Vector3<double>::Zero() /* no torque */,
-                                                          object.default_mass() * g * up_W);
+                                                          15 * object.default_mass() * g * x_W);
 
                 output->resize(1 /* number of forces */);
                 (*output)[0].body_index = object_body_index;
@@ -109,7 +110,7 @@ directives:
     name: spam
     file: package://drake/examples/simple_gripper/mesh.sdf
     default_free_body_pose: { base_link: {
-        translation: [-0.2, 0.05, 0.00],
+        translation: [0.2, 0.05, 0.00],
         rotation: !Rpy { deg: [90.0, 0.0, 0.0 ]}
     } }
 
