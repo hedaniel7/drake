@@ -31,6 +31,8 @@ namespace drake {
                     std::vector<drake::multibody::ExternallyAppliedSpatialForce<double>>* output) const;
 
             const MultibodyPlant<double>* plant_{nullptr};
+            double force_start_time_{0.0};  // Start time for applying force
+            double force_end_time_{3.0};    // End time for applying force
         };
 
         ExternalForceApplicator::ExternalForceApplicator(const MultibodyPlant<double>* plant)
@@ -44,22 +46,29 @@ namespace drake {
                 [[maybe_unused]] const systems::Context<double>& context,
                 std::vector<drake::multibody::ExternallyAppliedSpatialForce<double>>* output) const {
 
-            const double g = UniformGravityFieldElement<double>::kDefaultStrength;
+            const double current_time = context.get_time();
 
-            const RigidBody<double>& object =
-                    dynamic_cast<const RigidBody<double>&>(plant_->GetBodyByName("base_link"));
+            // Only apply force within the force application time window
+            if (current_time >= force_start_time_ && current_time <= force_end_time_) {
+                const double g = UniformGravityFieldElement<double>::kDefaultStrength;
 
-            const BodyIndex object_body_index = object.index();
-            const Vector3<double> object_com = object.default_com();
+                const RigidBody<double>& object =
+                        dynamic_cast<const RigidBody<double>&>(plant_->GetBodyByName("base_link"));
 
-            const Vector3<double> up_W(0, 0, 1);
-            const SpatialForce<double> F_object_com_W(Vector3<double>::Zero() /* no torque */,
-                                                      object.default_mass() * g * up_W);
+                const BodyIndex object_body_index = object.index();
+                const Vector3<double> object_com = object.default_com();
 
-            output->resize(1 /* number of forces */);
-            (*output)[0].body_index = object_body_index;
-            (*output)[0].p_BoBq_B = object_com;
-            (*output)[0].F_Bq_W = F_object_com_W;
+                const Vector3<double> up_W(0, 0, 1);
+                const SpatialForce<double> F_object_com_W(Vector3<double>::Zero() /* no torque */,
+                                                          object.default_mass() * g * up_W);
+
+                output->resize(1 /* number of forces */);
+                (*output)[0].body_index = object_body_index;
+                (*output)[0].p_BoBq_B = object_com;
+                (*output)[0].F_Bq_W = F_object_com_W;
+            } else {
+                output->clear(); // Do not apply any force outside the force application time window
+            }
         }
 
     }  // namespace multibody
