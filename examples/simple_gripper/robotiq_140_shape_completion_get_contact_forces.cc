@@ -54,7 +54,7 @@ namespace drake {
 
             const Vector3<double> up_W(0, 0, 1);
             const SpatialForce<double> F_object_com_W(Vector3<double>::Zero() /* no torque */,
-                                                      10 * object.default_mass() * g / 2 * up_W);
+                                                      object.default_mass() * g * up_W);
 
             output->resize(1 /* number of forces */);
             (*output)[0].body_index = object_body_index;
