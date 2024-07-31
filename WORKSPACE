@@ -29,3 +29,21 @@ versions.check(minimum_bazel_version = "6.0")
 load("@rules_rust//crate_universe:repositories.bzl", "crate_universe_dependencies")  # noqa
 
 crate_universe_dependencies(bootstrap = True)
+
+# custom libraries (hedaniel7)
+load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
+
+http_archive(
+    name = "gflags",
+    urls = ["https://github.com/gflags/gflags/archive/v2.2.2.tar.gz"],
+    strip_prefix = "gflags-2.2.2",
+    build_file_content = """
+cc_library(
+    name = "gflags",
+    srcs = glob(["src/*.cc"]),
+    hdrs = glob(["src/*.h"]),
+    includes = ["src"],
+    visibility = ["//visibility:public"],
+)
+""",
+)
