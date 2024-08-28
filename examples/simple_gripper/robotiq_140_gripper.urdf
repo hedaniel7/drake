@@ -24,6 +24,10 @@
       <geometry>
         <mesh filename="/home/dan/Projects/Pydrake-robotiq140/catkin_ws/src/robotiq/robotiq_2f_140_gripper_visualization/meshes/collision/robotiq_arg2f_base_link.obj"/>
       </geometry>
+      <drake:proximity_properties>
+        <drake:rigid_hydroelastic/>
+        <drake:hunt_crossley_dissipation value="100.25"/>
+      </drake:proximity_properties>
     </collision>
   </link>
   <link name="left_outer_knuckle">
@@ -46,6 +50,10 @@
       <geometry>
         <mesh filename="/home/dan/Projects/Pydrake-robotiq140/catkin_ws/src/robotiq/robotiq_2f_140_gripper_visualization/meshes/collision/robotiq_arg2f_140_outer_knuckle.obj"/>
       </geometry>
+      <drake:proximity_properties>
+        <drake:rigid_hydroelastic/>
+        <drake:hunt_crossley_dissipation value="100.25"/>
+      </drake:proximity_properties>
     </collision>
   </link>
   <link name="left_outer_finger">
@@ -68,6 +76,10 @@
       <geometry>
         <mesh filename="/home/dan/Projects/Pydrake-robotiq140/catkin_ws/src/robotiq/robotiq_2f_140_gripper_visualization/meshes/collision/robotiq_arg2f_140_outer_finger.obj"/>
       </geometry>
+      <drake:proximity_properties>
+        <drake:rigid_hydroelastic/>
+        <drake:hunt_crossley_dissipation value="100.25"/>
+      </drake:proximity_properties>
     </collision>
   </link>
   <link name="left_inner_finger">
@@ -90,6 +102,10 @@
       <geometry>
         <mesh filename="/home/dan/Projects/Pydrake-robotiq140/catkin_ws/src/robotiq/robotiq_2f_140_gripper_visualization/meshes/collision/robotiq_arg2f_140_inner_finger.obj"/>
       </geometry>
+      <drake:proximity_properties>
+        <drake:rigid_hydroelastic/>
+        <drake:hunt_crossley_dissipation value="100.25"/>
+      </drake:proximity_properties>
     </collision>
   </link>
   <link name="left_inner_finger_pad">
@@ -112,6 +128,7 @@
       </material>
       <drake:proximity_properties>
         <drake:rigid_hydroelastic/>
+        <drake:hunt_crossley_dissipation value="100.25"/>
       </drake:proximity_properties>
     </collision>
   </link>
@@ -135,6 +152,10 @@
       <geometry>
         <mesh filename="/home/dan/Projects/Pydrake-robotiq140/catkin_ws/src/robotiq/robotiq_2f_140_gripper_visualization/meshes/collision/robotiq_arg2f_140_inner_knuckle.obj"/>
       </geometry>
+      <drake:proximity_properties>
+        <drake:rigid_hydroelastic/>
+        <drake:hunt_crossley_dissipation value="100.25"/>
+      </drake:proximity_properties>
     </collision>
   </link>
   <link name="right_outer_knuckle">
@@ -157,6 +178,10 @@
       <geometry>
         <mesh filename="/home/dan/Projects/Pydrake-robotiq140/catkin_ws/src/robotiq/robotiq_2f_140_gripper_visualization/meshes/collision/robotiq_arg2f_140_outer_knuckle.obj"/>
       </geometry>
+      <drake:proximity_properties>
+        <drake:rigid_hydroelastic/>
+        <drake:hunt_crossley_dissipation value="100.25"/>
+      </drake:proximity_properties>
     </collision>
   </link>
   <link name="right_outer_finger">
@@ -179,6 +204,10 @@
       <geometry>
         <mesh filename="/home/dan/Projects/Pydrake-robotiq140/catkin_ws/src/robotiq/robotiq_2f_140_gripper_visualization/meshes/collision/robotiq_arg2f_140_outer_finger.obj"/>
       </geometry>
+      <drake:proximity_properties>
+        <drake:rigid_hydroelastic/>
+        <drake:hunt_crossley_dissipation value="100.25"/>
+      </drake:proximity_properties>
     </collision>
   </link>
   <link name="right_inner_finger">
@@ -201,6 +230,10 @@
       <geometry>
         <mesh filename="/home/dan/Projects/Pydrake-robotiq140/catkin_ws/src/robotiq/robotiq_2f_140_gripper_visualization/meshes/collision/robotiq_arg2f_140_inner_finger.obj"/>
       </geometry>
+      <drake:proximity_properties>
+        <drake:rigid_hydroelastic/>
+        <drake:hunt_crossley_dissipation value="100.25"/>
+      </drake:proximity_properties>
     </collision>
   </link>
   <link name="right_inner_finger_pad">
@@ -223,6 +256,7 @@
       </material>
       <drake:proximity_properties>
         <drake:rigid_hydroelastic/>
+        <drake:hunt_crossley_dissipation value="100.25"/>
       </drake:proximity_properties>
     </collision>
   </link>
@@ -246,6 +280,10 @@
       <geometry>
         <mesh filename="/home/dan/Projects/Pydrake-robotiq140/catkin_ws/src/robotiq/robotiq_2f_140_gripper_visualization/meshes/collision/robotiq_arg2f_140_inner_knuckle.obj"/>
       </geometry>
+      <drake:proximity_properties>
+        <drake:rigid_hydroelastic/>
+        <drake:hunt_crossley_dissipation value="100.25"/>
+      </drake:proximity_properties>
     </collision>
   </link>
   <joint name="finger_joint" type="revolute">
@@ -326,8 +364,8 @@
     </joint>
     <actuator name="finger_joint_motor">
       <mechanicalReduction>1</mechanicalReduction>
-      <drake:rotor_inertia value="1e-6"/>
-      <drake:gear_ratio value="300"/>
+      <drake:rotor_inertia value="5e-3"/>
+      <drake:gear_ratio value="20"/>
     </actuator>
   </transmission>
     <drake:collision_filter_group name="finger_1">
