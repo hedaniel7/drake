@@ -1,6 +1,7 @@
 #include <iostream>
 #include <memory>
 #include <string>
+#include <sstream>
 
 #include <fmt/format.h>
 
@@ -33,13 +34,101 @@ namespace drake {
             using multibody::HydroelasticContactInfo;
             namespace {
 
+                Eigen::Vector3d parse_position(const std::string& position_str) {
+                    std::istringstream iss(position_str);
+                    double x, y, z;
+                    char comma;
+                    if (!(iss >> x >> comma >> y >> comma >> z) || comma != ',') {
+                        throw std::runtime_error("Invalid position format. Expected 'x,y,z'");
+                    }
+                    return Eigen::Vector3d(x, y, z);
+                }
+
+                Eigen::Quaterniond parse_orientation(const std::string& orientation_str) {
+                    std::istringstream iss(orientation_str);
+                    double x, y, z, w;
+                    char comma;
+                    if (!(iss >> x >> comma >> y >> comma >> z >> comma >> w) || comma != ',') {
+                        throw std::runtime_error("Invalid orientation format. Expected 'w,x,y,z'");
+                    }
+                    return Eigen::Quaterniond(w, x, y, z).normalized();
+                }
+
                 int do_main(int argc, char* argv[]) {
                     gflags::ParseCommandLineFlags(&argc, &argv, true);
-                    std::string position = FLAGS_position;
-                    std::string orientation = FLAGS_orientation;
+                    std::string position_str = FLAGS_position;
+                    std::string orientation_str = FLAGS_orientation;
 
-                    std::cout << "Position: " << position << std::endl;
-                    std::cout << "Orientation: " << orientation << std::endl;
+                    std::cout << "Position: " << position_str << std::endl;
+                    std::cout << "Orientation: " << orientation_str << std::endl;
+
+                    // Parse position and orientation
+                    Eigen::Vector3d parsed_position;
+                    Eigen::Quaterniond parsed_orientation;
+
+                    try {
+                        parsed_position = parse_position(position_str);
+                        parsed_orientation = parse_orientation(orientation_str);
+                    } catch (const std::runtime_error& e) {
+                        std::cerr << "Error parsing input: " << e.what() << std::endl;
+                        return 1;
+                    }
+
+                    // Print out all elements of the quaternion
+                    std::cout << std::fixed << std::setprecision(6)
+                              << "Parsed Orientation Eigen Quaternion:\n"
+                              << "z: " << parsed_orientation.z() << "\n"
+                              << "x: " << parsed_orientation.x() << "\n"
+                              << "y: " << parsed_orientation.y() << "\n"
+                              << "w: " << parsed_orientation.w() <<  std::endl;
+
+
+                    // Create the default orientation
+                    //drake::math::RotationMatrix<double> default_rotation =
+                    //        drake::math::RotationMatrix<double>::MakeRotationMatrixFromRpy(M_PI, 0, M_PI);
+                    //drake::math::RollPitchYaw<double> default_rotation_rpy(M_PI, 0, M_PI);
+                    //drake::math::RollPitchYaw<double> default_rotation_rpy(0.0872665, 0, 0); // 5 deg x rotation
+                    //drake::math::RollPitchYaw<double> default_rotation_rpy(0, 0.0872665, 0); // 5 deg y rotation
+                    //drake::math::RollPitchYaw<double> default_rotation_rpy(0, 0.2617994, 0); // 15 deg y rotation
+                    //drake::math::RollPitchYaw<double> default_rotation_rpy(0, 0, 0.0872665); // 5 deg z rotation
+                    //drake::math::RollPitchYaw<double> default_rotation_rpy(0, 0, 0); // no rotation
+
+                    drake::math::RollPitchYaw<double> default_rotation_rpy(0, M_PI, 0); // 180 deg y rotation
+                    drake::math::RotationMatrix<double> default_rotation_matrix = default_rotation_rpy.ToRotationMatrix();
+
+                    drake::math::RotationMatrix<double> orientation_matrix = drake::math::RotationMatrix<double>(parsed_orientation);
+
+                    // Function to convert RotationMatrix to string and calculate determinant
+                    auto matrix_to_string_with_det = [](const drake::math::RotationMatrix<double>& rot_matrix) {
+                        std::stringstream ss;
+                        ss << std::fixed << std::setprecision(6);  // Set precision for floating-point numbers
+                        const auto& matrix = rot_matrix.matrix();
+                        for (int i = 0; i < 3; ++i) {
+                            for (int j = 0; j < 3; ++j) {
+                                ss << matrix(i, j) << " ";
+                            }
+                            ss << "\n";
+                        }
+                        double det = matrix.determinant();
+                        ss << "Determinant: " << det << "\n";
+                        return ss.str();
+                    };
+
+                    // Output the default rotation matrix with determinant
+                    std::string default_matrix_str = matrix_to_string_with_det(default_rotation_matrix);
+                    drake::log()->info("Default Rotation matrix:\n{}", default_matrix_str);
+
+                    // Output the parsed orientation matrix with determinant
+                    std::string parsed_matrix_str = matrix_to_string_with_det(orientation_matrix);
+                    drake::log()->info("Parsed Orientation matrix:\n{}", parsed_matrix_str);
+
+                    // Combine default orientation with parsed orientation
+                    drake::math::RotationMatrix<double> final_rotation = orientation_matrix * default_rotation_matrix;
+
+                    // Output the final rotation matrix with determinant
+                    std::string final_matrix_str = matrix_to_string_with_det(final_rotation);
+                    drake::log()->info("Final Rotation matrix:\n{}", final_matrix_str);
+
 
                     auto meshcat = std::make_shared<geometry::Meshcat>();
                     systems::DiagramBuilder<double> builder;
@@ -66,7 +155,7 @@ directives:
     name: spam
     file: package://drake/examples/simple_gripper/mesh.sdf
     default_free_body_pose: { base_link: {
-        translation: [0.2, 0.05, 0.00],
+        translation: [0.2, 0.05, 0.005],
         rotation: !Rpy { deg: [90.0, 0.0, 0.0 ]}
     } }
 
@@ -78,7 +167,7 @@ directives:
     parent: world
     child: table::table_link
     X_PC:
-        translation: [0.0, 0.0, -0.81]
+        translation: [0.0, 0.0, -0.79]
 )""";
 
                     parser.AddModelsFromString(with_mimic, "dmd.yaml");
@@ -87,12 +176,13 @@ directives:
                     plant.WeldFrames(
                             plant.world_frame(),
                             plant.GetBodyByName("robotiq_arg2f_base_link").body_frame(),
-                            math::RigidTransformd(math::RollPitchYawd(M_PI , 0, M_PI),
-                                                  Eigen::Vector3d(0.2, 0, 0.21)));
+                            //math::RigidTransformd(math::RollPitchYawd(M_PI , 0, M_PI),
+                            //                      Eigen::Vector3d(0.2, 0, 0.21)));
+                            drake::math::RigidTransform<double>(final_rotation, Eigen::Vector3d(0.2, 0, 0.2105) + parsed_position));
 
                     plant.Finalize();
 
-                    auto torque = builder.AddSystem<systems::ConstantVectorSource>(Vector1d(2));
+                    auto torque = builder.AddSystem<systems::ConstantVectorSource>(Vector1d(20));
                     builder.Connect(torque->get_output_port(), plant.get_actuation_input_port());
 
                     visualization::AddDefaultVisualization(&builder, meshcat);
@@ -103,7 +193,7 @@ directives:
                     systems::Simulator simulator(*diagram);
 
                     meshcat->StartRecording(32.0, false);
-                    simulator.AdvanceTo(5.0);
+                    simulator.AdvanceTo(1.7);
                     meshcat->PublishRecording();
 
                     const auto& final_context = simulator.get_context();
