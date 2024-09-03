@@ -26,7 +26,8 @@
       </geometry>
       <drake:proximity_properties>
         <drake:rigid_hydroelastic/>
-        <drake:hunt_crossley_dissipation value="100.25"/>
+        <drake:hunt_crossley_dissipation value="1.25"/>
+        <drake:relaxation_time value="100"/>
       </drake:proximity_properties>
     </collision>
   </link>
@@ -52,7 +53,8 @@
       </geometry>
       <drake:proximity_properties>
         <drake:rigid_hydroelastic/>
-        <drake:hunt_crossley_dissipation value="100.25"/>
+        <drake:hunt_crossley_dissipation value="1.25"/>
+        <drake:relaxation_time value="100"/>
       </drake:proximity_properties>
     </collision>
   </link>
@@ -78,7 +80,8 @@
       </geometry>
       <drake:proximity_properties>
         <drake:rigid_hydroelastic/>
-        <drake:hunt_crossley_dissipation value="100.25"/>
+        <drake:hunt_crossley_dissipation value="1.25"/>
+        <drake:relaxation_time value="100"/>
       </drake:proximity_properties>
     </collision>
   </link>
@@ -104,7 +107,8 @@
       </geometry>
       <drake:proximity_properties>
         <drake:rigid_hydroelastic/>
-        <drake:hunt_crossley_dissipation value="100.25"/>
+        <drake:hunt_crossley_dissipation value="1.25"/>
+        <drake:relaxation_time value="100"/>
       </drake:proximity_properties>
     </collision>
   </link>
@@ -128,7 +132,8 @@
       </material>
       <drake:proximity_properties>
         <drake:rigid_hydroelastic/>
-        <drake:hunt_crossley_dissipation value="100.25"/>
+        <drake:hunt_crossley_dissipation value="1.25"/>
+        <drake:relaxation_time value="100"/>
       </drake:proximity_properties>
     </collision>
   </link>
@@ -154,7 +159,8 @@
       </geometry>
       <drake:proximity_properties>
         <drake:rigid_hydroelastic/>
-        <drake:hunt_crossley_dissipation value="100.25"/>
+        <drake:hunt_crossley_dissipation value="1.25"/>
+        <drake:relaxation_time value="100"/>
       </drake:proximity_properties>
     </collision>
   </link>
@@ -180,7 +186,8 @@
       </geometry>
       <drake:proximity_properties>
         <drake:rigid_hydroelastic/>
-        <drake:hunt_crossley_dissipation value="100.25"/>
+        <drake:hunt_crossley_dissipation value="1.25"/>
+        <drake:relaxation_time value="100"/>
       </drake:proximity_properties>
     </collision>
   </link>
@@ -206,7 +213,8 @@
       </geometry>
       <drake:proximity_properties>
         <drake:rigid_hydroelastic/>
-        <drake:hunt_crossley_dissipation value="100.25"/>
+        <drake:hunt_crossley_dissipation value="1.25"/>
+        <drake:relaxation_time value="100"/>
       </drake:proximity_properties>
     </collision>
   </link>
@@ -232,7 +240,8 @@
       </geometry>
       <drake:proximity_properties>
         <drake:rigid_hydroelastic/>
-        <drake:hunt_crossley_dissipation value="100.25"/>
+        <drake:hunt_crossley_dissipation value="1.25"/>
+        <drake:relaxation_time value="100"/>
       </drake:proximity_properties>
     </collision>
   </link>
@@ -256,7 +265,8 @@
       </material>
       <drake:proximity_properties>
         <drake:rigid_hydroelastic/>
-        <drake:hunt_crossley_dissipation value="100.25"/>
+        <drake:hunt_crossley_dissipation value="1.25"/>
+        <drake:relaxation_time value="100"/>
       </drake:proximity_properties>
     </collision>
   </link>
@@ -282,7 +292,8 @@
       </geometry>
       <drake:proximity_properties>
         <drake:rigid_hydroelastic/>
-        <drake:hunt_crossley_dissipation value="100.25"/>
+        <drake:hunt_crossley_dissipation value="1.25"/>
+        <drake:relaxation_time value="100"/>
       </drake:proximity_properties>
     </collision>
   </link>

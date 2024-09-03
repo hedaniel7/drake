@@ -98,6 +98,15 @@ namespace drake {
 
                     drake::math::RotationMatrix<double> orientation_matrix = drake::math::RotationMatrix<double>(parsed_orientation);
 
+                    // Extract the z-axis (third column) from the orientation matrix
+                    Eigen::Vector3d z_axis = orientation_matrix.matrix().col(2);
+
+// Scale the z-axis to 10 cm (0.10 meters)
+                    Eigen::Vector3d height_correction = 0.10 * z_axis;
+
+// Add the translation to the parsed position
+                    Eigen::Vector3d height_correct_parsed_position = parsed_position - height_correction;
+
                     // Function to convert RotationMatrix to string and calculate determinant
                     auto matrix_to_string_with_det = [](const drake::math::RotationMatrix<double>& rot_matrix) {
                         std::stringstream ss;
@@ -122,8 +131,11 @@ namespace drake {
                     std::string parsed_matrix_str = matrix_to_string_with_det(orientation_matrix);
                     drake::log()->info("Parsed Orientation matrix:\n{}", parsed_matrix_str);
 
+                    // Create a 90-degree rotation around the z-axis
+                    drake::math::RotationMatrix<double> z_rotation = drake::math::RotationMatrix<double>::MakeZRotation(M_PI / 2.0);
+
                     // Combine default orientation with parsed orientation
-                    drake::math::RotationMatrix<double> final_rotation = orientation_matrix * default_rotation_matrix;
+                    drake::math::RotationMatrix<double> final_rotation = orientation_matrix * z_rotation;
 
                     // Output the final rotation matrix with determinant
                     std::string final_matrix_str = matrix_to_string_with_det(final_rotation);
@@ -135,7 +147,7 @@ namespace drake {
 
                     auto [plant, scene_graph] =
                             multibody::AddMultibodyPlantSceneGraph(&builder, 0.002);
-                    plant.set_discrete_contact_approximation( drake::multibody::DiscreteContactApproximation::kLagged);
+                    plant.set_discrete_contact_approximation( drake::multibody::DiscreteContactApproximation::kSap);
 
                     multibody::Parser parser(&plant);
                     multibody::PackageMap::RemoteParams params;
@@ -155,8 +167,8 @@ directives:
     name: spam
     file: package://drake/examples/simple_gripper/mesh.sdf
     default_free_body_pose: { base_link: {
-        translation: [0.2, 0.05, 0.005],
-        rotation: !Rpy { deg: [90.0, 0.0, 0.0 ]}
+        translation: [0.0, 0.00, 0.0],
+        rotation: !Rpy { deg: [0.0, 0.0, 0.0 ]}
     } }
 
 - add_model:
@@ -178,7 +190,7 @@ directives:
                             plant.GetBodyByName("robotiq_arg2f_base_link").body_frame(),
                             //math::RigidTransformd(math::RollPitchYawd(M_PI , 0, M_PI),
                             //                      Eigen::Vector3d(0.2, 0, 0.21)));
-                            drake::math::RigidTransform<double>(final_rotation, Eigen::Vector3d(0.2, 0, 0.2105) + parsed_position));
+                            drake::math::RigidTransform<double>(final_rotation, height_correct_parsed_position));
 
                     plant.Finalize();
 
