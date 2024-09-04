@@ -147,7 +147,7 @@ namespace drake {
 
                     auto [plant, scene_graph] =
                             multibody::AddMultibodyPlantSceneGraph(&builder, 0.002);
-                    plant.set_discrete_contact_approximation( drake::multibody::DiscreteContactApproximation::kSap);
+                    plant.set_discrete_contact_approximation( drake::multibody::DiscreteContactApproximation::kLagged);
 
                     multibody::Parser parser(&plant);
                     multibody::PackageMap::RemoteParams params;
@@ -194,7 +194,7 @@ directives:
 
                     plant.Finalize();
 
-                    auto torque = builder.AddSystem<systems::ConstantVectorSource>(Vector1d(20));
+                    auto torque = builder.AddSystem<systems::ConstantVectorSource>(Vector1d(2));
                     builder.Connect(torque->get_output_port(), plant.get_actuation_input_port());
 
                     visualization::AddDefaultVisualization(&builder, meshcat);
@@ -205,7 +205,7 @@ directives:
                     systems::Simulator simulator(*diagram);
 
                     meshcat->StartRecording(32.0, false);
-                    simulator.AdvanceTo(1.7);
+                    simulator.AdvanceTo(5.0);
                     meshcat->PublishRecording();
 
                     const auto& final_context = simulator.get_context();

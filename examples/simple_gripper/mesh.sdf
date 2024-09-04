@@ -28,11 +28,12 @@
         </geometry>
         <drake:proximity_properties>
           <drake:compliant_hydroelastic/>
-          <drake:hydroelastic_modulus>8.0e7</drake:hydroelastic_modulus>
-          <drake:relaxation_time>1.0</drake:relaxation_time>
+          <drake:hydroelastic_modulus>5e10</drake:hydroelastic_modulus>
+          <drake:mesh_resolution_hint>0.0001</drake:mesh_resolution_hint>
+          <drake:relaxation_time>200.0</drake:relaxation_time>
           <drake:mu_dynamic>0.25</drake:mu_dynamic>
           <drake:mu_static>0.25</drake:mu_static>
-          <drake:hunt_crossley_dissipation>1.25</drake:hunt_crossley_dissipation>
+          <drake:hunt_crossley_dissipation>100.0</drake:hunt_crossley_dissipation>
         </drake:proximity_properties>
       </collision>
     </link>
