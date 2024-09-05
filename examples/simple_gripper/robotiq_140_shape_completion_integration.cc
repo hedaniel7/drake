@@ -147,7 +147,7 @@ namespace drake {
 
                     auto [plant, scene_graph] =
                             multibody::AddMultibodyPlantSceneGraph(&builder, 0.002);
-                    plant.set_discrete_contact_approximation( drake::multibody::DiscreteContactApproximation::kLagged);
+                    plant.set_discrete_contact_approximation( drake::multibody::DiscreteContactApproximation::kSimilar);
 
                     multibody::Parser parser(&plant);
                     multibody::PackageMap::RemoteParams params;
