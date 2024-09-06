@@ -6,9 +6,9 @@
 <robot name="robotiq_arg2f_140_model" xmlns:xacro="http://ros.org/wiki/xacro">
   <link name="robotiq_arg2f_base_link">
     <inertial>
-      <origin rpy="0 0 0" xyz="8.625E-08 -4.6583E-06 0.03145"/>
+      <origin rpy="0 0 0" xyz="1.8086e-07 -9.683e-05 0.035953"/>
       <mass value="0.22652"/>
-      <inertia ixx="0.00020005" ixy="-4.2442E-10" ixz="-2.9069E-10" iyy="0.00017832" iyz="-3.4402E-08" izz="0.00013478"/>
+      <inertia ixx="0.00020362" ixy="9.3277e-12" ixz="1.4059e-09" iyy="0.00017774" iyz="-8.1406e-07" izz="0.00014377"/>
     </inertial>
     <visual>
       <origin rpy="0 0 0" xyz="0 0 0"/>
@@ -26,17 +26,18 @@
       </geometry>
       <drake:proximity_properties>
         <drake:compliant_hydroelastic/>
-        <drake:hydroelastic_modulus value="5e10"/>
-        <drake:hunt_crossley_dissipation value="100"/>
-        <drake:relaxation_time value="100"/>
+        <drake:hydroelastic_modulus value="1e7"/>
+        <drake:hunt_crossley_dissipation value="50"/>
+        <drake:relaxation_time value="50"/>
+        <drake:point_contact_stiffness value="1e5"/>
       </drake:proximity_properties>
     </collision>
   </link>
   <link name="left_outer_knuckle">
     <inertial>
-      <origin rpy="0 0 0" xyz="-0.000200000000003065 0.0199435877845359 0.0292245259211331"/>
-      <mass value="0.00853198276973456"/>
-      <inertia ixx="2.89328108496468E-06" ixy="-1.57935047237397E-19" ixz="-1.93980378593255E-19" iyy="1.86719750325683E-06" iyz="-1.21858577871576E-06" izz="1.21905238907251E-06"/>
+      <origin rpy="0 0 0" xyz="-0.00020039 0.0090449 0.0078388"/>
+      <mass value="0.008532"/>
+      <inertia ixx="2.387e-06" ixy="-6.6175e-11" ixz="-1.1486e-11" iyy="1.3786e-06" iyz="-9.8111e-07" izz="1.4254e-06"/>
     </inertial>
     <visual>
       <origin rpy="0 0 0" xyz="0 0 0"/>
@@ -54,17 +55,18 @@
       </geometry>
       <drake:proximity_properties>
         <drake:compliant_hydroelastic/>
-        <drake:hydroelastic_modulus value="5e10"/>
-        <drake:hunt_crossley_dissipation value="100"/>
-        <drake:relaxation_time value="100"/>
+        <drake:hydroelastic_modulus value="1e7"/>
+        <drake:hunt_crossley_dissipation value="50"/>
+        <drake:relaxation_time value="50"/>
+        <drake:point_contact_stiffness value="1e5"/>
       </drake:proximity_properties>
     </collision>
   </link>
   <link name="left_outer_finger">
     <inertial>
-      <origin rpy="0 0 0" xyz="0.00030115855001899 0.0373907951953854 -0.0208027427000385"/>
-      <mass value="0.022614240507152"/>
-      <inertia ixx="1.52518312458174E-05" ixy="9.76583423954399E-10" ixz="-5.43838577022588E-10" iyy="6.17694243867776E-06" iyz="6.78636130740228E-06" izz="1.16494917907219E-05"/>
+      <origin rpy="0 0 0" xyz="-0.00021702 0.039217 -0.014782"/>
+      <mass value="0.022614"/>
+      <inertia ixx="1.6451e-05" ixy="-5.8739e-09" ixz="2.2297e-09" iyy="3.2034e-06" iyz="4.6625e-06" izz="1.5814e-05"/>
     </inertial>
     <visual>
       <origin rpy="0 0 0" xyz="0 0 0"/>
@@ -82,17 +84,18 @@
       </geometry>
       <drake:proximity_properties>
         <drake:compliant_hydroelastic/>
-        <drake:hydroelastic_modulus value="5e10"/>
-        <drake:hunt_crossley_dissipation value="100"/>
-        <drake:relaxation_time value="100"/>
+        <drake:hydroelastic_modulus value="1e7"/>
+        <drake:hunt_crossley_dissipation value="50"/>
+        <drake:relaxation_time value="50"/>
+        <drake:point_contact_stiffness value="1e5"/>
       </drake:proximity_properties>
     </collision>
   </link>
   <link name="left_inner_finger">
     <inertial>
-      <origin rpy="0 0 0" xyz="0.000299999999999317 0.0160078233491243 -0.0136945669206257"/>
-      <mass value="0.0104003125914103"/>
-      <inertia ixx="2.71909453810972E-06" ixy="1.35402465472579E-21" ixz="-7.1817349065269E-22" iyy="7.69100314106116E-07" iyz="6.74715432769696E-07" izz="2.30315190420171E-06"/>
+      <origin rpy="0 0 0" xyz="-0.00020012 0.016693 -0.011922"/>
+      <mass value="0.0104"/>
+      <inertia ixx="2.34e-06" ixy="5.5159e-12" ixz="-7.4768e-12" iyy="7.6765e-07" iyz="5.1603e-07" izz="1.9464e-06"/>
     </inertial>
     <visual>
       <origin rpy="0 0 0" xyz="0 0 0"/>
@@ -110,13 +113,19 @@
       </geometry>
       <drake:proximity_properties>
         <drake:compliant_hydroelastic/>
-        <drake:hydroelastic_modulus value="5e10"/>
-        <drake:hunt_crossley_dissipation value="100"/>
-        <drake:relaxation_time value="100"/>
+        <drake:hydroelastic_modulus value="1e7"/>
+        <drake:hunt_crossley_dissipation value="50"/>
+        <drake:relaxation_time value="50"/>
+        <drake:point_contact_stiffness value="1e5"/>
       </drake:proximity_properties>
     </collision>
   </link>
   <link name="left_inner_finger_pad">
+    <inertial>
+      <inertia ixx="0" ixy="0" ixz="0" iyy="0" iyz="0" izz="0"/>
+      <mass value="0"/>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+    </inertial>
     <visual>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
@@ -137,16 +146,17 @@
       <drake:proximity_properties>
         <drake:rigid_hydroelastic/>
         <drake:mesh_resolution_hint value="0.0001"/>
-        <drake:hunt_crossley_dissipation value="100"/>
-        <drake:relaxation_time value="100"/>
+        <drake:hunt_crossley_dissipation value="50"/>
+        <drake:relaxation_time value="50"/>
+        <drake:point_contact_stiffness value="1e5"/>
       </drake:proximity_properties>
     </collision>
   </link>
   <link name="left_inner_knuckle">
     <inertial>
-      <origin rpy="0 0 0" xyz="0.000123011831763771 0.0507850843201817 0.00103968640075166"/>
-      <mass value="0.0271177346495152"/>
-      <inertia ixx="2.61910379223783E-05" ixy="-2.43616858946494E-07" ixz="-6.37789906117123E-09" iyy="2.8270243746167E-06" iyz="-5.37200748039765E-07" izz="2.83695868220296E-05"/>
+      <origin rpy="0 0 0" xyz="0.0013408 0.048162 -0.0010672"/>
+      <mass value="0.027118"/>
+      <inertia ixx="2.7127e-05" ixy="-8.8385e-07" ixz="2.0258e-08" iyy="3.3337e-06" iyz="5.8643e-07" izz="2.9802e-05"/>
     </inertial>
     <visual>
       <origin rpy="0 0 0" xyz="0 0 0"/>
@@ -164,17 +174,18 @@
       </geometry>
       <drake:proximity_properties>
         <drake:compliant_hydroelastic/>
-        <drake:hydroelastic_modulus value="5e10"/>
-        <drake:hunt_crossley_dissipation value="100"/>
-        <drake:relaxation_time value="100"/>
+        <drake:hydroelastic_modulus value="1e7"/>
+        <drake:hunt_crossley_dissipation value="50"/>
+        <drake:relaxation_time value="50"/>
+        <drake:point_contact_stiffness value="1e5"/>
       </drake:proximity_properties>
     </collision>
   </link>
   <link name="right_outer_knuckle">
     <inertial>
-      <origin rpy="0 0 0" xyz="-0.000200000000003065 0.0199435877845359 0.0292245259211331"/>
-      <mass value="0.00853198276973456"/>
-      <inertia ixx="2.89328108496468E-06" ixy="-1.57935047237397E-19" ixz="-1.93980378593255E-19" iyy="1.86719750325683E-06" iyz="-1.21858577871576E-06" izz="1.21905238907251E-06"/>
+      <origin rpy="0 0 0" xyz="-0.00020039 0.0090449 0.0078388"/>
+      <mass value="0.008532"/>
+      <inertia ixx="2.387e-06" ixy="-6.6175e-11" ixz="-1.1486e-11" iyy="1.3786e-06" iyz="-9.8111e-07" izz="1.4254e-06"/>
     </inertial>
     <visual>
       <origin rpy="0 0 0" xyz="0 0 0"/>
@@ -192,17 +203,18 @@
       </geometry>
       <drake:proximity_properties>
         <drake:compliant_hydroelastic/>
-        <drake:hydroelastic_modulus value="5e10"/>
-        <drake:hunt_crossley_dissipation value="100"/>
-        <drake:relaxation_time value="100"/>
+        <drake:hydroelastic_modulus value="1e7"/>
+        <drake:hunt_crossley_dissipation value="50"/>
+        <drake:relaxation_time value="50"/>
+        <drake:point_contact_stiffness value="1e5"/>
       </drake:proximity_properties>
     </collision>
   </link>
   <link name="right_outer_finger">
     <inertial>
-      <origin rpy="0 0 0" xyz="0.00030115855001899 0.0373907951953854 -0.0208027427000385"/>
-      <mass value="0.022614240507152"/>
-      <inertia ixx="1.52518312458174E-05" ixy="9.76583423954399E-10" ixz="-5.43838577022588E-10" iyy="6.17694243867776E-06" iyz="6.78636130740228E-06" izz="1.16494917907219E-05"/>
+      <origin rpy="0 0 0" xyz="-0.00021702 0.039217 -0.014782"/>
+      <mass value="0.022614"/>
+      <inertia ixx="1.6451e-05" ixy="-5.8739e-09" ixz="2.2297e-09" iyy="3.2034e-06" iyz="4.6625e-06" izz="1.5814e-05"/>
     </inertial>
     <visual>
       <origin rpy="0 0 0" xyz="0 0 0"/>
@@ -220,17 +232,18 @@
       </geometry>
       <drake:proximity_properties>
         <drake:compliant_hydroelastic/>
-        <drake:hydroelastic_modulus value="5e10"/>
-        <drake:hunt_crossley_dissipation value="100"/>
-        <drake:relaxation_time value="100"/>
+        <drake:hydroelastic_modulus value="1e7"/>
+        <drake:hunt_crossley_dissipation value="50"/>
+        <drake:relaxation_time value="50"/>
+        <drake:point_contact_stiffness value="1e5"/>
       </drake:proximity_properties>
     </collision>
   </link>
   <link name="right_inner_finger">
     <inertial>
-      <origin rpy="0 0 0" xyz="0.000299999999999317 0.0160078233491243 -0.0136945669206257"/>
-      <mass value="0.0104003125914103"/>
-      <inertia ixx="2.71909453810972E-06" ixy="1.35402465472579E-21" ixz="-7.1817349065269E-22" iyy="7.69100314106116E-07" iyz="6.74715432769696E-07" izz="2.30315190420171E-06"/>
+      <origin rpy="0 0 0" xyz="-0.00020012 0.016693 -0.011922"/>
+      <mass value="0.0104"/>
+      <inertia ixx="2.34e-06" ixy="5.5159e-12" ixz="-7.4768e-12" iyy="7.6765e-07" iyz="5.1603e-07" izz="1.9464e-06"/>
     </inertial>
     <visual>
       <origin rpy="0 0 0" xyz="0 0 0"/>
@@ -248,13 +261,19 @@
       </geometry>
       <drake:proximity_properties>
         <drake:compliant_hydroelastic/>
-        <drake:hydroelastic_modulus value="5e10"/>
-        <drake:hunt_crossley_dissipation value="100"/>
-        <drake:relaxation_time value="100"/>
+        <drake:hydroelastic_modulus value="1e7"/>
+        <drake:hunt_crossley_dissipation value="50"/>
+        <drake:relaxation_time value="50"/>
+        <drake:point_contact_stiffness value="1e5"/>
       </drake:proximity_properties>
     </collision>
   </link>
   <link name="right_inner_finger_pad">
+    <inertial>
+      <inertia ixx="0" ixy="0" ixz="0" iyy="0" iyz="0" izz="0"/>
+      <mass value="0"/>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+    </inertial>
     <visual>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
@@ -275,16 +294,17 @@
       <drake:proximity_properties>
         <drake:rigid_hydroelastic/>
         <drake:mesh_resolution_hint value="0.0001"/>
-        <drake:hunt_crossley_dissipation value="100"/>
-        <drake:relaxation_time value="100"/>
+        <drake:hunt_crossley_dissipation value="50"/>
+        <drake:relaxation_time value="50"/>
+        <drake:point_contact_stiffness value="1e5"/>
       </drake:proximity_properties>
     </collision>
   </link>
   <link name="right_inner_knuckle">
     <inertial>
-      <origin rpy="0 0 0" xyz="0.000123011831763771 0.0507850843201817 0.00103968640075166"/>
-      <mass value="0.0271177346495152"/>
-      <inertia ixx="2.61910379223783E-05" ixy="-2.43616858946494E-07" ixz="-6.37789906117123E-09" iyy="2.8270243746167E-06" iyz="-5.37200748039765E-07" izz="2.83695868220296E-05"/>
+      <origin rpy="0 0 0" xyz="0.0013408 0.048162 -0.0010672"/>
+      <mass value="0.027118"/>
+      <inertia ixx="2.7127e-05" ixy="-8.8385e-07" ixz="2.0258e-08" iyy="3.3337e-06" iyz="5.8643e-07" izz="2.9802e-05"/>
     </inertial>
     <visual>
       <origin rpy="0 0 0" xyz="0 0 0"/>
@@ -302,9 +322,10 @@
       </geometry>
       <drake:proximity_properties>
         <drake:compliant_hydroelastic/>
-        <drake:hydroelastic_modulus value="5e10"/>
-        <drake:hunt_crossley_dissipation value="100"/>
-        <drake:relaxation_time value="100"/>
+        <drake:hydroelastic_modulus value="1e7"/>
+        <drake:hunt_crossley_dissipation value="50"/>
+        <drake:relaxation_time value="50"/>
+        <drake:point_contact_stiffness value="1e5"/>
       </drake:proximity_properties>
     </collision>
   </link>

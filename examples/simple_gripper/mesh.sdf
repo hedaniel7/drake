@@ -3,14 +3,15 @@
   <model name="mesh">
     <link name="base_link">
       <inertial>
+        <pose>0.011359 0.017488 0.091792 0 0 0</pose>
         <mass>0.05</mass>
         <inertia>
-          <ixx>0.07</ixx>
-          <ixy>0</ixy>
-          <ixz>0</ixz>
-          <iyy>0.07</iyy>
-          <iyz>0</iyz>
-          <izz>0.07</izz>
+          <ixx>5.7375e-05</ixx>
+          <ixy>-6.621e-06</ixy>
+          <ixz>2.817e-05</ixz>
+          <iyy>8.4711e-05</iyy>
+          <iyz>3.2969e-06</iyz>
+          <izz>9.3327e-05</izz>
         </inertia>
       </inertial>
       <visual name="visual_geometry">
@@ -28,12 +29,11 @@
         </geometry>
         <drake:proximity_properties>
           <drake:compliant_hydroelastic/>
-          <drake:hydroelastic_modulus>5e10</drake:hydroelastic_modulus>
-          <drake:mesh_resolution_hint>0.0001</drake:mesh_resolution_hint>
-          <drake:relaxation_time>200.0</drake:relaxation_time>
-          <drake:mu_dynamic>0.25</drake:mu_dynamic>
-          <drake:mu_static>0.25</drake:mu_static>
-          <drake:hunt_crossley_dissipation>100.0</drake:hunt_crossley_dissipation>
+          <drake:hydroelastic_modulus>1e7</drake:hydroelastic_modulus>
+          <drake:relaxation_time>50.0</drake:relaxation_time>
+          <drake:mu_dynamic>50</drake:mu_dynamic>
+          <drake:mu_static>50</drake:mu_static>
+          <drake:hunt_crossley_dissipation>50.0</drake:hunt_crossley_dissipation>
         </drake:proximity_properties>
       </collision>
     </link>

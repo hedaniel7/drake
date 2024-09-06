@@ -20,6 +20,8 @@
 #include <drake/multibody/tree/rigid_body.h>
 #include <drake/multibody/tree/spatial_inertia.h>
 
+#include "drake/geometry/proximity_properties.h"
+
 #include <gflags/gflags.h>
 
 DEFINE_string(position, "", "Position vector as comma-separated values, e.g., '1,2,3'");
@@ -167,8 +169,8 @@ directives:
     name: spam
     file: package://drake/examples/simple_gripper/mesh.sdf
     default_free_body_pose: { base_link: {
-        translation: [0.0, 0.00, 0.0],
-        rotation: !Rpy { deg: [0.0, 0.0, 0.0 ]}
+        translation: [0.0, 0.04, 0.0],
+        rotation: !Rpy { deg: [90.0, 0.0, 0.0 ]}
     } }
 
 - add_model:
@@ -194,7 +196,7 @@ directives:
 
                     plant.Finalize();
 
-                    auto torque = builder.AddSystem<systems::ConstantVectorSource>(Vector1d(2));
+                    auto torque = builder.AddSystem<systems::ConstantVectorSource>(Vector1d(15));
                     builder.Connect(torque->get_output_port(), plant.get_actuation_input_port());
 
                     visualization::AddDefaultVisualization(&builder, meshcat);
