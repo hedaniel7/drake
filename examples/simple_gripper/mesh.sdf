@@ -3,15 +3,15 @@
   <model name="mesh">
     <link name="base_link">
       <inertial>
-        <pose>0.011359 0.017488 0.091792 0 0 0</pose>
+        <pose>0.016062 -0.037338 0.026651 0 0 0</pose>
         <mass>0.05</mass>
         <inertia>
-          <ixx>5.7375e-05</ixx>
-          <ixy>-6.621e-06</ixy>
-          <ixz>2.817e-05</ixz>
-          <iyy>8.4711e-05</iyy>
-          <iyz>3.2969e-06</iyz>
-          <izz>9.3327e-05</izz>
+          <ixx>1.3304e-05</ixx>
+          <ixy>-5.8313e-06</ixy>
+          <ixz>1.7793e-07</ixz>
+          <iyy>2.1569e-05</iyy>
+          <iyz>2.9406e-07</iyz>
+          <izz>2.0073e-05</izz>
         </inertia>
       </inertial>
       <visual name="visual_geometry">

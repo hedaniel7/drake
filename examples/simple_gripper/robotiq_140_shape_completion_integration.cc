@@ -169,8 +169,8 @@ directives:
     name: spam
     file: package://drake/examples/simple_gripper/mesh.sdf
     default_free_body_pose: { base_link: {
-        translation: [0.0, 0.04, 0.0],
-        rotation: !Rpy { deg: [90.0, 0.0, 0.0 ]}
+        translation: [0.0, 0.00, 0.0],
+        rotation: !Rpy { deg: [0.0, 0.0, 0.0 ]}
     } }
 
 - add_model:
@@ -181,7 +181,7 @@ directives:
     parent: world
     child: table::table_link
     X_PC:
-        translation: [0.0, 0.0, -0.79]
+        translation: [0.0, 0.0, -0.77]
 )""";
 
                     parser.AddModelsFromString(with_mimic, "dmd.yaml");
