@@ -239,4 +239,36 @@ drake_cc_binary(
     ],
 )
 
+drake_cc_binary(
+    name = "robotiq_140_shape_completion_integration_midterm_presentation",
+    srcs = ["robotiq_140_shape_completion_integration_midterm_presentation.cc"],
+    data = [
+      "//examples/kuka_iiwa_arm:models",
+      "010_potted_meat_can.sdf",
+      "010_potted_meat_can_textured.obj",
+      "midterm_presentation/obj1/obj1_mesh.sdf",
+      "midterm_presentation/obj2/obj2_mesh.sdf",
+      "midterm_presentation/obj3/obj3_mesh.sdf",
+      "midterm_presentation/obj1/obj1_midterm_presentation_rotated_mesh_cleaned.obj",
+      "midterm_presentation/obj2/obj2_midterm_presentation_rotated_mesh_cleaned.obj",
+      "midterm_presentation/obj3/obj3_midterm_presentation_rotated_mesh_cleaned.obj",
+      "midterm_presentation/obj1/obj1_midterm_presentation_grasps_drake.csv",
+      "midterm_presentation/obj2/obj2_midterm_presentation_grasps_drake.csv",
+      "midterm_presentation/obj3/obj3_midterm_presentation_grasps_drake.csv",
+      "mesh.obj",
+      "robotiq_140_gripper.urdf",
+    ],
+    deps = [
+        "//geometry:meshcat",
+        "//multibody/parsing",
+        "//multibody/plant",
+        "//systems/analysis:simulator",
+        "//systems/framework:diagram",
+        "//systems/lcm:lcm_pubsub_system",
+        "//systems/primitives:constant_vector_source",
+        "//visualization:visualization_config_functions",
+        "@gflags",
+    ],
+)
+
 add_lint_tests()
