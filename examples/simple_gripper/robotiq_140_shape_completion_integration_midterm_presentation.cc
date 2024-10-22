@@ -28,6 +28,7 @@ DEFINE_string(position, "", "Position vector as comma-separated values, e.g., '1
 DEFINE_string(orientation, "", "Orientation quaternion as comma-separated values, e.g., '0,0,0,1'");
 DEFINE_double(gripper_opening, 0.0, "Gripper opening in meters");
 DEFINE_double(manual_correction, 0.0, "Manual height correction on top of the predicted gripper height");
+DEFINE_double(table_correction, 0.0, "Manual height correction for the table in meters");
 
 namespace drake {
     namespace examples {
@@ -58,7 +59,7 @@ namespace drake {
                     return Eigen::Quaterniond(w, x, y, z).normalized();
                 }
 
-                // Function to predict gripper grasp point for the robotiq 140 for a  given opening in meters
+                // Function to predict gripper grasp point for the robotiq 140 for a given opening in meters
                 double predict_robotiq140_gripper_grasp_point_height(double cgn_gripper_width) {
                     // cgn_gripper_width is in meters, so we need to convert it to mm for our original function
                     double x_mm = cgn_gripper_width * 1000;
@@ -73,11 +74,13 @@ namespace drake {
                     std::string orientation_str = FLAGS_orientation;
                     double gripper_opening = FLAGS_gripper_opening;
                     double manual_correction = FLAGS_manual_correction;
+                    double table_correction = FLAGS_table_correction; // Parsed table_correction
 
                     std::cout << "Position: " << position_str << std::endl;
                     std::cout << "Orientation: " << orientation_str << std::endl;
                     std::cout << "Gripper Opening: " << gripper_opening << " meters" << std::endl;
                     std::cout << "Manual Correction: " << manual_correction << " meters" << std::endl;
+                    std::cout << "Table Correction: " << table_correction << " meters" << std::endl; // Display table_correction
 
                     // Parse position and orientation
                     Eigen::Vector3d parsed_position;
@@ -96,20 +99,19 @@ namespace drake {
                     // Extract the z-axis (third column) from the orientation matrix
                     Eigen::Vector3d z_axis = orientation_matrix.matrix().col(2);
 
-                    // calculate the height correction based upon the prediceted gripper height plus some manual correction (Magic Number)
+                    // Calculate the height correction based upon the predicted gripper height plus some manual correction (Magic Number)
                     double predicted_gripper_height = predict_robotiq140_gripper_grasp_point_height(gripper_opening);
                     std::cout << "Predicted Gripper Opening: " << predicted_gripper_height << " meters" << std::endl;
-                    //double manual_correction = -0.105;
+                    // double manual_correction = -0.105;
                     std::cout << "Predicted Gripper Opening + manual_correction: " << (predicted_gripper_height + manual_correction) << " meters" << std::endl;
 
                     double franka_panda_hand_height = 0.127;
-                    //Eigen::Vector3d height_correction = predicted_gripper_height * z_axis;
+                    // Eigen::Vector3d height_correction = predicted_gripper_height * z_axis;
                     Eigen::Vector3d height_correction = (predicted_gripper_height - franka_panda_hand_height + manual_correction)  * z_axis;
                     std::cout << "Final Height correction: predicted_gripper_height - franka_panda_hand_height + manual_correction: " << (predicted_gripper_height - franka_panda_hand_height + manual_correction) << " meters" << std::endl;
 
                     // Add the translation to the parsed position
                     Eigen::Vector3d height_correct_parsed_position = parsed_position - height_correction;
-
 
                     // Create a 90-degree rotation around the z-axis
                     drake::math::RotationMatrix<double> z_rotation = drake::math::RotationMatrix<double>::MakeZRotation(M_PI / 2.0);
@@ -118,8 +120,8 @@ namespace drake {
                     drake::math::RotationMatrix<double> final_rotation = orientation_matrix * z_rotation;
 
                     // Output the final rotation matrix with determinant
-                    //std::string final_matrix_str = matrix_to_string_with_det(final_rotation);
-                    //drake::log()->info("Final Rotation matrix:\n{}", final_matrix_str);
+                    // std::string final_matrix_str = matrix_to_string_with_det(final_rotation);
+                    // drake::log()->info("Final Rotation matrix:\n{}", final_matrix_str);
 
 
                     auto meshcat = std::make_shared<geometry::Meshcat>();
@@ -141,15 +143,19 @@ namespace drake {
                             parser.package_map().GetPath("kinova-movo") +
                             "/movo_common/movo_description/package.xml");
 
-                    std::string with_mimic = R"""(
+                    // Compute the new table height
+                    double base_table_height = -0.768;
+                    double total_table_height = base_table_height + table_correction;
+                    // Update the translation in the YAML string
+                    std::string with_mimic = fmt::format(R"""(
 directives:
 - add_model:
     name: spam
     file: package://drake/examples/simple_gripper/midterm_presentation/obj2/obj2_mesh.sdf
-    default_free_body_pose: { base_link: {
+    default_free_body_pose: {{ base_link: {{
         translation: [0.0, 0.00, 0.0],
-        rotation: !Rpy { deg: [0.0, 0.0, 0.0 ]}
-    } }
+        rotation: !Rpy {{ deg: [0.0, 0.0, 0.0 ]}}
+    }} }}
 
 - add_model:
     name: table
@@ -159,8 +165,13 @@ directives:
     parent: world
     child: table::table_link
     X_PC:
-        translation: [0.0, 0.0, -0.768]
-)""";
+        translation: [0.0, 0.0, {:.5f}]
+)""", total_table_height);
+
+                    // Explanation:
+                    // The base table height is -0.768 meters.
+                    // table_correction is added to this base height.
+                    // The total_table_height is then inserted into the YAML string.
 
                     parser.AddModelsFromString(with_mimic, "dmd.yaml");
                     parser.AddModelsFromUrl(
@@ -168,7 +179,7 @@ directives:
                     plant.WeldFrames(
                             plant.world_frame(),
                             plant.GetBodyByName("robotiq_arg2f_base_link").body_frame(),
-                            //math::RigidTransformd(math::RollPitchYawd(M_PI , 0, M_PI),
+                            // math::RigidTransformd(math::RollPitchYawd(M_PI , 0, M_PI),
                             //                      Eigen::Vector3d(0.2, 0, 0.21)));
                             drake::math::RigidTransform<double>(final_rotation, height_correct_parsed_position));
 
@@ -202,7 +213,7 @@ directives:
 
                         const Vector3d& F_Ac_W = info.F_Ac_W().translational();
                         const Vector3d& p_WC = info.contact_surface().centroid();
-                        //const Vector3d& face_normal = info.contact_surface().face_normal();
+                        // const Vector3d& face_normal = info.contact_surface().face_normal();
                         const Vector3d& tau_Ac_W = info.F_Ac_W().rotational();
 
                         std::cout << "Contact " << i << ":" << std::endl;
@@ -219,7 +230,6 @@ directives:
 
                     const drake::multibody::RigidBody<double>& object =
                             dynamic_cast<const drake::multibody::RigidBody<double>&>(plant.GetBodyByName("base_link"));
-                    // valid names in model instance 'spam' (the to be grasped object) are: base_link;
 
                     const drake::multibody::SpatialInertia<double>& spatial_inertia = object.default_spatial_inertia();
                     const Vector3<double> object_com = spatial_inertia.get_com();
@@ -227,10 +237,8 @@ directives:
                     const auto& X_WO = plant.EvalBodyPoseInWorld(plant_context, object);
                     const Vector3<double> object_com_W = X_WO * object_com;
 
-
                     // Center of Mass of the to be grasped object
                     std::cout << "  object_com: [" << object_com_W.x() << ", " << object_com_W.y() << ", " << object_com_W.z() << "]" << std::endl;
-
 
                     // Pause so that you can see the meshcat output.
                     std::cout << "[Press Ctrl-C to finish]." << std::endl;
