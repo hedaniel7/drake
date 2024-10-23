@@ -310,7 +310,7 @@ directives:
                             builder.AddSystem<drake::multibody::ExternalForceApplicator>(&plant);
 
                     // Add force to be output and specify time window, force multiplier and force direction
-                    external_force_applicator->AddForce(0.0, 0.15, 1.0, Vector3d(0, 0, 1));
+                    external_force_applicator->AddForce(0.0, 0.2, 1.0, Vector3d(0, 0, 1));
 
                     // Connect the external force applicator system to the MBP.
                     builder.Connect(external_force_applicator->get_output_port(0),
