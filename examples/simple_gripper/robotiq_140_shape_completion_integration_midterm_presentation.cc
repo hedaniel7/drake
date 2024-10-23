@@ -217,13 +217,27 @@ namespace drake {
                     // Calculate the height correction based upon the predicted gripper height plus some manual correction (Magic Number)
                     double predicted_gripper_height = predict_robotiq140_gripper_grasp_point_height(gripper_opening);
                     std::cout << "Predicted Gripper Opening: " << predicted_gripper_height << " meters" << std::endl;
-                    // double manual_correction = -0.105;
+
                     std::cout << "Predicted Gripper Opening + manual_correction: " << (predicted_gripper_height + manual_correction) << " meters" << std::endl;
 
                     double franka_panda_hand_height = 0.127;
-                    // Eigen::Vector3d height_correction = predicted_gripper_height * z_axis;
-                    Eigen::Vector3d height_correction = (predicted_gripper_height - franka_panda_hand_height + manual_correction)  * z_axis;
-                    std::cout << "Final Height correction: predicted_gripper_height - franka_panda_hand_height + manual_correction: " << (predicted_gripper_height - franka_panda_hand_height + manual_correction) << " meters" << std::endl;
+                    double franka_panda_hand_fingertip = 0.018;
+
+                    // We specify the location of the contact point on the Franka Panda hand from its height
+                    double franka_panda_hand_contact_pt = franka_panda_hand_height - franka_panda_hand_fingertip / 2.0;
+
+                    double robotiq_140_fingerpad_length = 0.0655;
+
+                    // Similar to the calculation of the contact on the Franka Panda hand we calculate the contact point
+                    // on the Robotiq 140 gripper from its predicted height
+                    double robotiq_140_fingerpad_contact_pt = predicted_gripper_height - robotiq_140_fingerpad_length / 2.0;
+
+
+                    // We finally specify the height correction to be the distance in grippper approach (z-axis of gripper)
+                    // between contact point on the Robotiq 140 and the contact point on the Franka Panda + some manual correction
+                    Eigen::Vector3d height_correction = (robotiq_140_fingerpad_contact_pt - franka_panda_hand_contact_pt + manual_correction)  * z_axis;
+
+                    std::cout << "Final Height correction: robotiq_140_fingerpad_contact_pt - franka_panda_hand_contact_pt + manual_correction: " << (robotiq_140_fingerpad_contact_pt - franka_panda_hand_contact_pt + manual_correction) << " meters" << std::endl;
 
                     // Add the translation to the parsed position
                     Eigen::Vector3d height_correct_parsed_position = parsed_position - height_correction;
