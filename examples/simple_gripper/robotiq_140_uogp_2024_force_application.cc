@@ -45,27 +45,40 @@
 namespace drake {
     namespace multibody {
 
-        // Class definition of the Leafsystem which should output multiple forces
+// Class definition of the LeafSystem which outputs multiple wrenches (forces and torques)
         class ExternalForceApplicator : public systems::LeafSystem<double> {
         public:
             explicit ExternalForceApplicator(const MultibodyPlant<double>* plant);
 
+            // Existing method to add a force
             void AddForce(double start_time, double end_time, double force_magnitude, const Eigen::Vector3d& force_direction);
+
+            // New method to add a wrench (force and torque)
+            void AddWrench(double start_time, double end_time,
+                           double force_magnitude, const Eigen::Vector3d& force_direction,
+                           double torque_magnitude, const Eigen::Vector3d& torque_direction);
 
         private:
             void CalcSpatialForceOutput(
-                    [[maybe_unused]] const systems::Context<double>& context,
+                    const systems::Context<double>& context,
                     std::vector<drake::multibody::ExternallyAppliedSpatialForce<double>>* output) const;
 
             const MultibodyPlant<double>* plant_{nullptr};
+
+            // Vectors to store start and end times for forces and wrenches
             std::vector<double> start_times_;
             std::vector<double> end_times_;
+
+            // Vectors to store force magnitudes and directions
             std::vector<double> force_magnitudes_;
             std::vector<Eigen::Vector3d> force_directions_;
+
+            // Vectors to store torque magnitudes and directions
+            std::vector<double> torque_magnitudes_;
+            std::vector<Eigen::Vector3d> torque_directions_;
         };
 
-        // Constructor of class in which we define the callback function of the output port
-        // which returns the output of our Leafsytem
+// Constructor where we define the callback function of the output port
         ExternalForceApplicator::ExternalForceApplicator(const MultibodyPlant<double>* plant)
                 : plant_(plant) {
             this->DeclareAbstractOutputPort(
@@ -73,41 +86,33 @@ namespace drake {
                     &ExternalForceApplicator::CalcSpatialForceOutput);
         }
 
-        // Because - from my understanding now, I could be wrong here - Drake only allows connecting one system to
-        // plant.get_applied_spatial_force_input_port()), we can't design the Leafsystem class here to be instantiated
-        // multiple times for multiple forces. I tried it myself and got:
-        /*
-        // We changed the class and the constructor in this hypothetical failing example to take the arguments
-        // in the constructor
-        auto external_force_applicator_1 =
-        builder.AddSystem<drake::multibody::ExternalForceApplicator>(&plant, 7.0, 12.0, 10.0, Vector3d(0, 0, 1));
-        auto external_force_applicator_2 =
-        builder.AddSystem<drake::multibody::ExternalForceApplicator>(&plant, 15.0, 20.0, 10.0, Vector3d(1, 0, 0));
-
-
-        builder.Connect(external_force_applicator_1->get_output_port(0),
-        plant.get_applied_spatial_force_input_port());
-        builder.Connect(external_force_applicator_2->get_output_port(0),
-        plant.get_applied_spatial_force_input_port());
-
-        This would yield the following errro:
-        abort: Failure at systems/framework/diagram_builder.cc:453 in ThrowIfInputAlreadyWired():
-        condition 'iter != input_port_ids_.end()' failed.
-        */
-        // Because of that, I chose to only instantiate one Leafsystem class and add multiple forces to be output from
-        // the output of this one Leafsystem class and specify their time window, magnitude and direction in this method
+// Method to add a force (unchanged)
         void ExternalForceApplicator::AddForce(double start_time, double end_time, double force_magnitude, const Eigen::Vector3d& force_direction) {
             start_times_.push_back(start_time);
             end_times_.push_back(end_time);
             force_magnitudes_.push_back(force_magnitude);
             force_directions_.push_back(force_direction);
+
+            // For forces, we push back zero torque
+            torque_magnitudes_.push_back(0.0);
+            torque_directions_.push_back(Eigen::Vector3d::Zero());
         }
 
-        // This method specifies what is output from this Leafsystem continually
-        //
-        // Remark: The compiler throws and unused error if the context is not used. It is used here anyway, though.
+// New method to add a wrench (force and torque)
+        void ExternalForceApplicator::AddWrench(double start_time, double end_time,
+                                                double force_magnitude, const Eigen::Vector3d& force_direction,
+                                                double torque_magnitude, const Eigen::Vector3d& torque_direction) {
+            start_times_.push_back(start_time);
+            end_times_.push_back(end_time);
+            force_magnitudes_.push_back(force_magnitude);
+            force_directions_.push_back(force_direction);
+            torque_magnitudes_.push_back(torque_magnitude);
+            torque_directions_.push_back(torque_direction);
+        }
+
+// This method specifies what is output from this LeafSystem continually
         void ExternalForceApplicator::CalcSpatialForceOutput(
-                [[maybe_unused]] const systems::Context<double>& context,
+                const systems::Context<double>& context,
                 std::vector<drake::multibody::ExternallyAppliedSpatialForce<double>>* output) const {
 
             const double current_time = context.get_time();
@@ -115,17 +120,24 @@ namespace drake {
 
             const RigidBody<double>& object =
                     dynamic_cast<const RigidBody<double>&>(plant_->GetBodyByName("base_link"));
-            // valid names in model instance 'spam' (the to be grasped object) are: base_link;
+            // Valid names in model instance 'spam' (the object to be grasped) are: base_link
 
             const BodyIndex object_body_index = object.index();
             const Vector3<double> object_com = object.default_com();
             const double g = UniformGravityFieldElement<double>::kDefaultStrength;
 
-            // We look through all the time windows and see if we output a force at the given simulation time
+            // Loop through all the time windows and output forces and torques at the given simulation time
             for (size_t i = 0; i < start_times_.size(); ++i) {
                 if (current_time >= start_times_[i] && current_time <= end_times_[i]) {
-                    const SpatialForce<double> F_object_com_W(Vector3<double>::Zero() /* no torque */,
-                                                              object.default_mass() * g * force_magnitudes_[i] * force_directions_[i]);
+                    // Calculate the force vector
+                    Vector3<double> force_vector = force_magnitudes_[i] * force_directions_[i];
+
+                    // Calculate the torque vector
+                    Vector3<double> torque_vector = torque_magnitudes_[i] * torque_directions_[i];
+
+                    // Create the spatial force (torque and force)
+                    const SpatialForce<double> F_object_com_W(object.default_mass() * g * torque_vector,
+                                                              object.default_mass() * g * force_vector);
 
                     output->emplace_back();
                     auto& force = output->back();
@@ -138,7 +150,6 @@ namespace drake {
 
     }  // namespace multibody
 }  // namespace drake
-
 DEFINE_string(position, "", "Position vector as comma-separated values, e.g., '1,2,3'");
 DEFINE_string(orientation, "", "Orientation quaternion as comma-separated values, e.g., '0,0,0,1'");
 DEFINE_double(gripper_opening, 0.0, "Gripper opening in meters");
@@ -333,7 +344,11 @@ directives:
                     // Add force to be output and specify time window, force multiplier and force direction
                     external_force_applicator->AddForce(0.0, 0.2, 1.0, Vector3d(0, 0, 1));
 
-                    external_force_applicator->AddForce(0.5, 1.0, 300.0, Vector3d(1, 1, 0));
+                    // Add a wrench (force and torque)
+                    external_force_applicator->AddWrench(
+                            0.5, 1.0,
+                            350.0, Vector3d(1, 1, 0),   // Force magnitude and direction
+                            0.0, Vector3d(0, 0, 1));   // Torque magnitude and direction
 
                     // Connect the external force applicator system to the MBP.
                     builder.Connect(external_force_applicator->get_output_port(0),
