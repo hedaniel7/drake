@@ -242,6 +242,13 @@ namespace drake {
                     // Add the translation to the parsed position
                     Eigen::Vector3d height_correct_parsed_position = parsed_position - height_correction;
 
+                    // Print the height corrected position with brackets and commas
+                    std::cout << "Height Corrected Parsed Position: ["
+                              << height_correct_parsed_position.x() << ", "
+                              << height_correct_parsed_position.y() << ", "
+                              << height_correct_parsed_position.z() << "]"
+                              << std::endl;
+
                     // Create a 90-degree rotation around the z-axis
                     drake::math::RotationMatrix<double> z_rotation = drake::math::RotationMatrix<double>::MakeZRotation(M_PI / 2.0);
 
