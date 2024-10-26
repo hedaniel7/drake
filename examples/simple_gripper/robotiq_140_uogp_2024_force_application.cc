@@ -50,6 +50,27 @@ void printVector(const std::string& name, const Eigen::Vector3d& vec) {
               << std::endl;
 }
 
+Eigen::Vector3d SelectUpwardAxis(const Eigen::Vector3d& axis) {
+    // Define the upward direction in the world frame
+    const Eigen::Vector3d upward_direction(0.0, 0.0, 1.0);
+
+    // Normalize the axis vector to compute cosine similarity
+    Eigen::Vector3d normalized_axis = axis.normalized();
+
+    // Compute cosine similarity with the upward direction
+    double cosine_similarity = normalized_axis.dot(upward_direction);
+
+    // Debug: Print cosine similarity (optional)
+    // std::cout << "Cosine Similarity with Upward Direction: " << cosine_similarity << std::endl;
+
+    // If cosine similarity is negative, negate the axis to point upward
+    if (cosine_similarity < 0.0) {
+        return -axis;
+    } else {
+        return axis;
+    }
+}
+
 
 
 namespace drake {
@@ -353,34 +374,24 @@ directives:
 
                     // Add force to be output and specify time window, force multiplier and force direction
                     Eigen::Vector3d gripper_x_axis = orientation_matrix.matrix().col(0);
-                    printVector("gripper_x_axis", gripper_x_axis);
                     Eigen::Vector3d gripper_y_axis = orientation_matrix.matrix().col(1);
+                    Eigen::Vector3d gripper_z_axis = orientation_matrix.matrix().col(2);
+
+                    printVector("gripper_x_axis", gripper_x_axis);
                     printVector("gripper_y_axis", gripper_y_axis);
+                    printVector("gripper_z_axis", gripper_z_axis);
 
-                    printVector("gripper_y_axis.normalized()", gripper_y_axis.normalized());
+                    // Select the upward-pointing axes using the SelectUpwardAxis function
+                    Eigen::Vector3d gripper_x_axis_selection = SelectUpwardAxis(gripper_x_axis);
+                    Eigen::Vector3d gripper_y_axis_selection = SelectUpwardAxis(gripper_y_axis);
+                    Eigen::Vector3d gripper_z_axis_selection = SelectUpwardAxis(gripper_z_axis);
 
-                    [[maybe_unused]] Eigen::Vector3d gripper_y_axis_projected_onto_world_x_y_plane = Vector3d(gripper_y_axis.x(), gripper_y_axis.y(), 0);
-                    printVector("gripper_y_axis_projected_onto_world_x_y_plane", gripper_y_axis_projected_onto_world_x_y_plane);
-
-                    Eigen::Vector3d gripper_y_axis_projected_onto_world_x_y_plane_normalized = gripper_y_axis_projected_onto_world_x_y_plane.normalized();
-                    printVector("gripper_y_axis_projected_onto_world_x_y_plane_normalized", gripper_y_axis_projected_onto_world_x_y_plane_normalized);
-
-                    Eigen::Vector3d gripper_xy_axis = (gripper_y_axis + gripper_x_axis).normalized();
-                    printVector("(gripper_y_axis + gripper_x_axis)", gripper_xy_axis);
-
-                    [[maybe_unused]] Eigen::Vector3d gripper_xy_axis_projected_onto_world_x_y_plane = Vector3d(gripper_xy_axis.x(), gripper_xy_axis.y(), 0);
-                    printVector("gripper_xy_axis_projected_onto_world_x_y_plane", gripper_xy_axis_projected_onto_world_x_y_plane);
-
-                    [[maybe_unused]] Eigen::Vector3d  gripper_xy_axis_projected_onto_world_x_y_plane_normalized = gripper_xy_axis_projected_onto_world_x_y_plane.normalized();
-                    printVector("gripper_xy_axis_projected_onto_world_x_y_plane_normalized", gripper_xy_axis_projected_onto_world_x_y_plane_normalized);
+                    printVector("gripper_x_axis_selection", gripper_x_axis_selection);
+                    printVector("gripper_y_axis_selection", gripper_y_axis_selection);
+                    printVector("gripper_z_axis_selection", gripper_z_axis_selection);
 
 
-                    Eigen::Vector3d good_vector = Vector3d(1, 1, 0);
-                    printVector("good_vector", good_vector);
-                    Eigen::Vector3d good_vector_normalized = good_vector.normalized();
-                    printVector("good_vector_normalized", good_vector_normalized);
-
-
+                    Eigen::Vector3d gripper_xyz_axis_selection_normalized = (gripper_x_axis_selection + gripper_y_axis_selection + gripper_z_axis_selection).normalized();
 
                     // Add a wrench (force and torque)
                     /*
@@ -403,9 +414,9 @@ directives:
 
                     // Add a wrench (force and torque)
                     external_force_applicator->AddWrench(
-                            0.5, 0.7,
-                            200.0, gripper_xy_axis_projected_onto_world_x_y_plane_normalized,   // Force magnitude and normalized direction
-                            0.0, gripper_x_axis);     // Torque magnitude and direction
+                            0.5, 0.6,
+                            10.0, gripper_xyz_axis_selection_normalized,   // Force magnitude and normalized direction
+                            10.0, gripper_xyz_axis_selection_normalized);     // Torque magnitude and direction
 
 
                     // Connect the external force applicator system to the MBP.
@@ -418,7 +429,7 @@ directives:
                     systems::Simulator simulator(*diagram);
 
                     meshcat->StartRecording(32.0, false);
-                    simulator.AdvanceTo(1.0);
+                    simulator.AdvanceTo(0.6);
                     meshcat->PublishRecording();
 
                     const auto& final_context = simulator.get_context();
