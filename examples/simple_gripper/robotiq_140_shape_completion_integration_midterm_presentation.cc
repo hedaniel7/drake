@@ -287,7 +287,7 @@ namespace drake {
 directives:
 - add_model:
     name: spam
-    file: package://drake/examples/simple_gripper/midterm_presentation/obj2/obj2_mesh.sdf
+    file: package://drake/examples/simple_gripper/mesh.sdf
     default_free_body_pose: {{ base_link: {{
         translation: [0.0, 0.00, 0.0],
         rotation: !Rpy {{ deg: [0.0, 0.0, 0.0 ]}}

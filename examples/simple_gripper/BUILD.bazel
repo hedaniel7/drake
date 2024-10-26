@@ -255,6 +255,7 @@ drake_cc_binary(
       "midterm_presentation/obj1/obj1_midterm_presentation_grasps_drake.csv",
       "midterm_presentation/obj2/obj2_midterm_presentation_grasps_drake.csv",
       "midterm_presentation/obj3/obj3_midterm_presentation_grasps_drake.csv",
+      "mesh.sdf",
       "mesh.obj",
       "robotiq_140_gripper.urdf",
     ],
