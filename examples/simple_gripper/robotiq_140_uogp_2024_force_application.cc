@@ -186,6 +186,8 @@ DEFINE_string(orientation, "", "Orientation quaternion as comma-separated values
 DEFINE_double(gripper_opening, 0.0, "Gripper opening in meters");
 DEFINE_double(manual_correction, 0.0, "Manual height correction on top of the predicted gripper height");
 DEFINE_double(table_correction, 0.0, "Manual height correction for the table in meters");
+DEFINE_double(force_magnitude, 1.0, "Magnitude of the applied force in Newtons.");
+DEFINE_double(torque_magnitude, 1.0, "Magnitude of the applied torque in Newton-meters.");
 
 namespace drake {
     namespace examples {
@@ -415,8 +417,8 @@ directives:
                     // Add a wrench (force and torque)
                     external_force_applicator->AddWrench(
                             0.5, 0.6,
-                            10.0, gripper_xyz_axis_selection_normalized,   // Force magnitude and normalized direction
-                            10.0, gripper_xyz_axis_selection_normalized);     // Torque magnitude and direction
+                            FLAGS_force_magnitude, gripper_xyz_axis_selection_normalized,   // Force magnitude and normalized direction
+                            FLAGS_torque_magnitude, gripper_xyz_axis_selection_normalized); // Torque magnitude and direction
 
 
                     // Connect the external force applicator system to the MBP.
