@@ -1,0 +1,40 @@
+<?xml version="1.0" ?>
+<sdf xmlns:drake="https://drake.mit.edu" version="1.7">
+  <model name="mesh">
+    <link name="base_link">
+      <inertial>
+        <pose>0.005091 0.011298 -0.0061524 0 0 0</pose>
+        <mass>0.435</mass>
+        <inertia>
+          <ixx>0.0002537</ixx>
+          <ixy>-3.9919e-05</ixy>
+          <ixz>3.1249e-06</ixz>
+          <iyy>0.00023954</iyy>
+          <iyz>-2.4194e-06</iyz>
+          <izz>0.00011578</izz>
+        </inertia>
+      </inertial>
+      <visual name="visual_geometry">
+        <geometry>
+          <mesh>
+            <uri>CheezItBox.obj</uri>
+          </mesh>
+        </geometry>
+      </visual>
+      <collision name="collision_geometry">
+        <geometry>
+          <mesh>
+            <uri>CheezItBox.obj</uri>
+          </mesh>
+        </geometry>
+        <drake:proximity_properties>
+          <drake:compliant_hydroelastic/>
+          <drake:hydroelastic_modulus>1e7</drake:hydroelastic_modulus>
+          <drake:mu_dynamic>0.1</drake:mu_dynamic>
+          <drake:mu_static>0.1</drake:mu_static>
+          <drake:hunt_crossley_dissipation>50.0</drake:hunt_crossley_dissipation>
+        </drake:proximity_properties>
+      </collision>
+    </link>
+  </model>
+</sdf>
