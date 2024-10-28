@@ -144,6 +144,7 @@ DEFINE_string(orientation, "", "Orientation quaternion as comma-separated values
 DEFINE_double(gripper_opening, 0.0, "Gripper opening in meters");
 DEFINE_double(manual_correction, 0.0, "Manual height correction on top of the predicted gripper height");
 DEFINE_double(table_correction, 0.0, "Manual height correction for the table in meters");
+DEFINE_bool(NoHeightCorrection, false, "If true, does not correct the height");
 
 namespace drake {
     namespace examples {
@@ -190,12 +191,14 @@ namespace drake {
                     double gripper_opening = FLAGS_gripper_opening;
                     double manual_correction = FLAGS_manual_correction;
                     double table_correction = FLAGS_table_correction; // Parsed table_correction
+                    bool no_height_correction = FLAGS_NoHeightCorrection;
 
                     std::cout << "Position: " << position_str << std::endl;
                     std::cout << "Orientation: " << orientation_str << std::endl;
                     std::cout << "Gripper Opening: " << gripper_opening << " meters" << std::endl;
                     std::cout << "Manual Correction: " << manual_correction << " meters" << std::endl;
                     std::cout << "Table Correction: " << table_correction << " meters" << std::endl; // Display table_correction
+                    std::cout << "No Height Correction: " << (no_height_correction ? "True" : "False") << std::endl;
 
                     // Parse position and orientation
                     Eigen::Vector3d parsed_position;
@@ -237,17 +240,36 @@ namespace drake {
                     // between contact point on the Robotiq 140 and the contact point on the Franka Panda + some manual correction
                     Eigen::Vector3d height_correction = (robotiq_140_fingerpad_contact_pt - franka_panda_hand_contact_pt + manual_correction)  * z_axis;
 
+                    Eigen::Vector3d height_correct_parsed_position;
+
                     std::cout << "Final Height correction: robotiq_140_fingerpad_contact_pt - franka_panda_hand_contact_pt + manual_correction: " << (robotiq_140_fingerpad_contact_pt - franka_panda_hand_contact_pt + manual_correction) << " meters" << std::endl;
 
-                    // Add the translation to the parsed position
-                    Eigen::Vector3d height_correct_parsed_position = parsed_position - height_correction;
+                    if (!no_height_correction) {
+                        // Apply height correction
 
-                    // Print the height corrected position with brackets and commas
-                    std::cout << "Height Corrected Parsed Position: ["
-                              << height_correct_parsed_position.x() << ", "
-                              << height_correct_parsed_position.y() << ", "
-                              << height_correct_parsed_position.z() << "]"
-                              << std::endl;
+                        std::cout << "Final Height correction: robotiq_140_fingerpad_contact_pt - franka_panda_hand_contact_pt + manual_correction: " << (robotiq_140_fingerpad_contact_pt - franka_panda_hand_contact_pt + manual_correction) << " meters" << std::endl;
+
+                        // Adjust the parsed position
+                        height_correct_parsed_position = parsed_position - height_correction;
+
+                        // Print the height-corrected position
+                        std::cout << "Height Corrected Parsed Position: ["
+                                  << height_correct_parsed_position.x() << ", "
+                                  << height_correct_parsed_position.y() << ", "
+                                  << height_correct_parsed_position.z() << "]"
+                                  << std::endl;
+                    } else {
+                        // Do not apply height correction
+                        std::cout << "No Height Correction applied." << std::endl;
+                        height_correct_parsed_position = parsed_position;
+
+                        // Print the uncorrected position
+                        std::cout << "Parsed Position: ["
+                                  << height_correct_parsed_position.x() << ", "
+                                  << height_correct_parsed_position.y() << ", "
+                                  << height_correct_parsed_position.z() << "]"
+                                  << std::endl;
+                    }
 
                     // Create a 90-degree rotation around the z-axis
                     drake::math::RotationMatrix<double> z_rotation = drake::math::RotationMatrix<double>::MakeZRotation(M_PI / 2.0);
@@ -287,7 +309,7 @@ namespace drake {
 directives:
 - add_model:
     name: spam
-    file: package://drake/examples/simple_gripper/uogp_2024/CheezItBox/CheezItBox.sdf
+    file: package://drake/examples/simple_gripper/uogp_2024/WoodBlock/WoodBlock.sdf
     default_free_body_pose: {{ base_link: {{
         translation: [0.0, 0.00, 0.0],
         rotation: !Rpy {{ deg: [0.0, 0.0, 0.0 ]}}
@@ -343,7 +365,7 @@ directives:
                     systems::Simulator simulator(*diagram);
 
                     meshcat->StartRecording(32.0, false);
-                    simulator.AdvanceTo(3.0);
+                    simulator.AdvanceTo(2.0);
                     meshcat->PublishRecording();
 
                     const auto& final_context = simulator.get_context();
