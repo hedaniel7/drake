@@ -281,6 +281,7 @@ drake_cc_binary(
       "010_potted_meat_can_textured.obj",
       "mesh.sdf",
       "mesh.obj",
+      "uogp_2024",
       "robotiq_140_gripper.urdf",
     ],
     deps = [
@@ -303,8 +304,7 @@ drake_cc_binary(
       "//examples/kuka_iiwa_arm:models",
       "010_potted_meat_can.sdf",
       "010_potted_meat_can_textured.obj",
-      "uogp_2024/CheezItBox/CheezItBox.sdf",
-      "uogp_2024/CheezItBox/CheezItBox.obj",
+      "uogp_2024",
       "robotiq_140_gripper.urdf",
     ],
     deps = [
