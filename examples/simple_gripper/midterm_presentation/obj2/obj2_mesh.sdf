@@ -17,14 +17,14 @@
       <visual name="visual_geometry">
         <geometry>
           <mesh>
-            <uri>obj2_midterm_presentation_rotated_mesh_cleaned.obj</uri>
+            <uri>../../mesh.obj </uri>
           </mesh>
         </geometry>
       </visual>
       <collision name="collision_geometry">
         <geometry>
           <mesh>
-            <uri>obj2_midterm_presentation_rotated_mesh_cleaned.obj</uri>
+            <uri>../../mesh.obj </uri>
           </mesh>
         </geometry>
         <drake:proximity_properties>

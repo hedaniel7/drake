@@ -343,7 +343,7 @@ directives:
                     systems::Simulator simulator(*diagram);
 
                     meshcat->StartRecording(32.0, false);
-                    simulator.AdvanceTo(1.0);
+                    simulator.AdvanceTo(2.0);
                     meshcat->PublishRecording();
 
                     const auto& final_context = simulator.get_context();
