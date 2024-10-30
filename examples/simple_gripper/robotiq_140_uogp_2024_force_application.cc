@@ -188,6 +188,9 @@ DEFINE_double(manual_correction, 0.0, "Manual height correction on top of the pr
 DEFINE_double(table_correction, 0.0, "Manual height correction for the table in meters");
 DEFINE_double(force_magnitude, 1.0, "Magnitude of the applied force in Newtons.");
 DEFINE_double(torque_magnitude, 1.0, "Magnitude of the applied torque in Newton-meters.");
+DEFINE_bool(NoHeightCorrection, false, "If true, does not correct the height");
+DEFINE_double(advanceSimTo, 5.0, "Time to advance the simulation to in seconds.");
+DEFINE_string(uogp_object, "", "Name of the UOGP object to load, e.g., 'CheezItBox'");
 
 namespace drake {
     namespace examples {
@@ -234,12 +237,21 @@ namespace drake {
                     double gripper_opening = FLAGS_gripper_opening;
                     double manual_correction = FLAGS_manual_correction;
                     double table_correction = FLAGS_table_correction; // Parsed table_correction
+                    bool no_height_correction = FLAGS_NoHeightCorrection;
+                    double advance_sim_to = FLAGS_advanceSimTo;  // Retrieve the simulation time
+                    std::string uogp_object = FLAGS_uogp_object;
+
+
 
                     std::cout << "Position: " << position_str << std::endl;
                     std::cout << "Orientation: " << orientation_str << std::endl;
                     std::cout << "Gripper Opening: " << gripper_opening << " meters" << std::endl;
                     std::cout << "Manual Correction: " << manual_correction << " meters" << std::endl;
                     std::cout << "Table Correction: " << table_correction << " meters" << std::endl; // Display table_correction
+                    std::cout << "Table Correction: " << table_correction << " meters" << std::endl; // Display table_correction
+                    std::cout << "No Height Correction: " << (no_height_correction ? "True" : "False") << std::endl;
+                    std::cout << "Advancing simulation to: " << advance_sim_to << " seconds" << std::endl;  // Display simulation time
+                    std::cout << "UOGP Object: " << uogp_object << std::endl;
 
                     // Parse position and orientation
                     Eigen::Vector3d parsed_position;
@@ -283,15 +295,31 @@ namespace drake {
 
                     std::cout << "Final Height correction: robotiq_140_fingerpad_contact_pt - franka_panda_hand_contact_pt + manual_correction: " << (robotiq_140_fingerpad_contact_pt - franka_panda_hand_contact_pt + manual_correction) << " meters" << std::endl;
 
-                    // Add the translation to the parsed position
-                    Eigen::Vector3d height_correct_parsed_position = parsed_position - height_correction;
+                    Eigen::Vector3d height_correct_parsed_position;
 
-                    // Print the height corrected position with brackets and commas
-                    std::cout << "Height Corrected Parsed Position: ["
-                              << height_correct_parsed_position.x() << ", "
-                              << height_correct_parsed_position.y() << ", "
-                              << height_correct_parsed_position.z() << "]"
-                              << std::endl;
+                    if (!no_height_correction) {
+                        // Apply height correction
+                        // Adjust the parsed position
+                        height_correct_parsed_position = parsed_position - height_correction;
+
+                        // Print the height-corrected position
+                        std::cout << "Height Corrected Parsed Position: ["
+                                  << height_correct_parsed_position.x() << ", "
+                                  << height_correct_parsed_position.y() << ", "
+                                  << height_correct_parsed_position.z() << "]"
+                                  << std::endl;
+                    } else {
+                        // Do not apply height correction
+                        std::cout << "No Height Correction applied." << std::endl;
+                        height_correct_parsed_position = parsed_position;
+
+                        // Print the uncorrected position
+                        std::cout << "Parsed Position: ["
+                                  << height_correct_parsed_position.x() << ", "
+                                  << height_correct_parsed_position.y() << ", "
+                                  << height_correct_parsed_position.z() << "]"
+                                  << std::endl;
+                    }
 
                     // Create a 90-degree rotation around the z-axis
                     drake::math::RotationMatrix<double> z_rotation = drake::math::RotationMatrix<double>::MakeZRotation(M_PI / 2.0);
@@ -326,12 +354,24 @@ namespace drake {
                     // Compute the new table height
                     double base_table_height = -0.768;
                     double total_table_height = base_table_height + table_correction;
+
+                    std::string object_file;
+                    if (!uogp_object.empty()) {
+                        // Use the specified UOGP object
+                        object_file = fmt::format("package://drake/examples/simple_gripper/uogp_2024/{0}/{0}.sdf", uogp_object);
+                    } else {
+                        // Default object file
+                        object_file = "package://drake/examples/simple_gripper/mesh.sdf";
+                    }
+
+
+
                     // Update the translation in the YAML string
                     std::string with_mimic = fmt::format(R"""(
 directives:
 - add_model:
     name: spam
-    file: package://drake/examples/simple_gripper/mesh.sdf
+    file: {object_file}
     default_free_body_pose: {{ base_link: {{
         translation: [0.0, 0.00, 0.0],
         rotation: !Rpy {{ deg: [0.0, 0.0, 0.0 ]}}
@@ -346,7 +386,7 @@ directives:
     child: table::table_link
     X_PC:
         translation: [0.0, 0.0, {:.5f}]
-)""", total_table_height);
+)""", total_table_height, fmt::arg("object_file", object_file));
 
                     // Explanation:
                     // The base table height is -0.768 meters.
@@ -373,6 +413,9 @@ directives:
                     // Create ExternalForceApplicator instance, a Leafsystem which can continually output a force
                     auto external_force_applicator =
                             builder.AddSystem<drake::multibody::ExternalForceApplicator>(&plant);
+
+                    // Force to keep the object standing
+                    external_force_applicator->AddForce(0.0, 0.2, 1.0, Vector3d(0, 0, 1));
 
                     // Add force to be output and specify time window, force multiplier and force direction
                     Eigen::Vector3d gripper_x_axis = orientation_matrix.matrix().col(0);
@@ -416,7 +459,7 @@ directives:
 
                     // Add a wrench (force and torque)
                     external_force_applicator->AddWrench(
-                            0.5, 0.6,
+                            0.7, 0.71,
                             FLAGS_force_magnitude, gripper_xyz_axis_selection_normalized,   // Force magnitude and normalized direction
                             FLAGS_torque_magnitude, gripper_xyz_axis_selection_normalized); // Torque magnitude and direction
 
@@ -431,7 +474,7 @@ directives:
                     systems::Simulator simulator(*diagram);
 
                     meshcat->StartRecording(32.0, false);
-                    simulator.AdvanceTo(0.6);
+                    simulator.AdvanceTo(advance_sim_to);  // Use the flag value here
                     meshcat->PublishRecording();
 
                     const auto& final_context = simulator.get_context();
