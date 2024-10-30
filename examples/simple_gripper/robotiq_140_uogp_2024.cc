@@ -41,7 +41,6 @@
 #include "drake/math/rigid_transform.h"
 #include <drake/multibody/tree/spatial_inertia.h>
 
-
 namespace drake {
     namespace multibody {
 
@@ -140,11 +139,14 @@ namespace drake {
 }  // namespace drake
 
 DEFINE_string(position, "", "Position vector as comma-separated values, e.g., '1,2,3'");
-DEFINE_string(orientation, "", "Orientation quaternion as comma-separated values, e.g., '0,0,0,1'");
+DEFINE_string(orientation, "", "Orientation quaternion as comma-separated values, e.g., 'w,x,y,z'");
 DEFINE_double(gripper_opening, 0.0, "Gripper opening in meters");
 DEFINE_double(manual_correction, 0.0, "Manual height correction on top of the predicted gripper height");
 DEFINE_double(table_correction, 0.0, "Manual height correction for the table in meters");
 DEFINE_bool(NoHeightCorrection, false, "If true, does not correct the height");
+DEFINE_double(advanceSimTo, 5.0, "Time to advance the simulation to in seconds.");  // Added this line
+DEFINE_string(uogp_object, "", "Name of the UOGP object to load, e.g., 'CheezItBox'");
+
 
 namespace drake {
     namespace examples {
@@ -175,7 +177,7 @@ namespace drake {
                     return Eigen::Quaterniond(w, x, y, z).normalized();
                 }
 
-                // Function to predict gripper grasp point for the robotiq 140 for a given opening in meters
+// Function to predict gripper grasp point for the robotiq 140 for a given opening in meters
                 double predict_robotiq140_gripper_grasp_point_height(double cgn_gripper_width) {
                     // cgn_gripper_width is in meters, so we need to convert it to mm for our original function
                     double x_mm = cgn_gripper_width * 1000;
@@ -192,6 +194,9 @@ namespace drake {
                     double manual_correction = FLAGS_manual_correction;
                     double table_correction = FLAGS_table_correction; // Parsed table_correction
                     bool no_height_correction = FLAGS_NoHeightCorrection;
+                    double advance_sim_to = FLAGS_advanceSimTo;  // Retrieve the simulation time
+                    std::string uogp_object = FLAGS_uogp_object;
+
 
                     std::cout << "Position: " << position_str << std::endl;
                     std::cout << "Orientation: " << orientation_str << std::endl;
@@ -199,6 +204,8 @@ namespace drake {
                     std::cout << "Manual Correction: " << manual_correction << " meters" << std::endl;
                     std::cout << "Table Correction: " << table_correction << " meters" << std::endl; // Display table_correction
                     std::cout << "No Height Correction: " << (no_height_correction ? "True" : "False") << std::endl;
+                    std::cout << "Advancing simulation to: " << advance_sim_to << " seconds" << std::endl;  // Display simulation time
+                    std::cout << "UOGP Object: " << uogp_object << std::endl;
 
                     // Parse position and orientation
                     Eigen::Vector3d parsed_position;
@@ -235,8 +242,7 @@ namespace drake {
                     // on the Robotiq 140 gripper from its predicted height
                     double robotiq_140_fingerpad_contact_pt = predicted_gripper_height - robotiq_140_fingerpad_length / 2.0;
 
-
-                    // We finally specify the height correction to be the distance in grippper approach (z-axis of gripper)
+                    // We finally specify the height correction to be the distance in gripper approach (z-axis of gripper)
                     // between contact point on the Robotiq 140 and the contact point on the Franka Panda + some manual correction
                     Eigen::Vector3d height_correction = (robotiq_140_fingerpad_contact_pt - franka_panda_hand_contact_pt + manual_correction)  * z_axis;
 
@@ -246,9 +252,6 @@ namespace drake {
 
                     if (!no_height_correction) {
                         // Apply height correction
-
-                        std::cout << "Final Height correction: robotiq_140_fingerpad_contact_pt - franka_panda_hand_contact_pt + manual_correction: " << (robotiq_140_fingerpad_contact_pt - franka_panda_hand_contact_pt + manual_correction) << " meters" << std::endl;
-
                         // Adjust the parsed position
                         height_correct_parsed_position = parsed_position - height_correction;
 
@@ -281,7 +284,6 @@ namespace drake {
                     // std::string final_matrix_str = matrix_to_string_with_det(final_rotation);
                     // drake::log()->info("Final Rotation matrix:\n{}", final_matrix_str);
 
-
                     auto meshcat = std::make_shared<geometry::Meshcat>();
                     systems::DiagramBuilder<double> builder;
 
@@ -304,12 +306,21 @@ namespace drake {
                     // Compute the new table height
                     double base_table_height = -0.768;
                     double total_table_height = base_table_height + table_correction;
-                    // Update the translation in the YAML string
+
+                    std::string object_file;
+                    if (!uogp_object.empty()) {
+                        // Use the specified UOGP object
+                        object_file = fmt::format("package://drake/examples/simple_gripper/uogp_2024/{0}/{0}.sdf", uogp_object);
+                    } else {
+                        // Default object file
+                        object_file = "package://drake/examples/simple_gripper/mesh.sdf";
+                    }
+
                     std::string with_mimic = fmt::format(R"""(
 directives:
 - add_model:
     name: spam
-    file: package://drake/examples/simple_gripper/uogp_2024/WoodBlock/WoodBlock.sdf
+    file: {object_file}
     default_free_body_pose: {{ base_link: {{
         translation: [0.0, 0.00, 0.0],
         rotation: !Rpy {{ deg: [0.0, 0.0, 0.0 ]}}
@@ -324,12 +335,8 @@ directives:
     child: table::table_link
     X_PC:
         translation: [0.0, 0.0, {:.5f}]
-)""", total_table_height);
+)""", total_table_height, fmt::arg("object_file", object_file));
 
-                    // Explanation:
-                    // The base table height is -0.768 meters.
-                    // table_correction is added to this base height.
-                    // The total_table_height is then inserted into the YAML string.
 
                     parser.AddModelsFromString(with_mimic, "dmd.yaml");
                     parser.AddModelsFromUrl(
@@ -365,7 +372,7 @@ directives:
                     systems::Simulator simulator(*diagram);
 
                     meshcat->StartRecording(32.0, false);
-                    simulator.AdvanceTo(2.0);
+                    simulator.AdvanceTo(advance_sim_to);  // Use the flag value here
                     meshcat->PublishRecording();
 
                     const auto& final_context = simulator.get_context();
@@ -396,7 +403,6 @@ directives:
                         std::cout << "  tau_Ac_W: [" << tau_Ac_W.x() << ", " << tau_Ac_W.y() << ", " << tau_Ac_W.z() << "]" << std::endl;
                     }
 
-
                     const drake::multibody::RigidBody<double>& object =
                             dynamic_cast<const drake::multibody::RigidBody<double>&>(plant.GetBodyByName("base_link"));
 
@@ -406,11 +412,11 @@ directives:
                     const auto& X_WO = plant.EvalBodyPoseInWorld(plant_context, object);
                     const Vector3<double> object_com_W = X_WO * object_com;
 
-                    // Center of Mass of the to be grasped object
+                    // Center of Mass of the to-be-grasped object
                     std::cout << "  object_com: [" << object_com_W.x() << ", " << object_com_W.y() << ", " << object_com_W.z() << "]" << std::endl;
 
-                    // Pause so that you can see the meshcat output.
-                    std::cout << "[Press Ctrl-C to finish]." << std::endl;
+                    // Pause so that you can see the Meshcat output.
+                    std::cout << "[Press Enter to finish]." << std::endl;
                     std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
 
                     return 0;
