@@ -352,7 +352,7 @@ namespace drake {
                             "/movo_common/movo_description/package.xml");
 
                     // Compute the new table height
-                    double base_table_height = -0.768;
+                    double base_table_height = -0.7645;
                     double total_table_height = base_table_height + table_correction;
 
                     std::string object_file;
