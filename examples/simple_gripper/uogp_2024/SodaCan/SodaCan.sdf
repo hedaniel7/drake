@@ -3,21 +3,21 @@
   <model name="mesh">
     <link name="base_link">
       <inertial>
-        <pose>0.0076415 0.01831 -0.0048915 0 0 0</pose>
-        <mass>0.770</mass>
+        <pose>0.0037329 0.012608 -0.0092894 0 0 0</pose>
+        <mass>0.35</mass>
         <inertia>
-          <ixx>0.0015929</ixx>
-          <ixy>2.8699e-06</ixy>
-          <ixz>-1.056e-05</ixz>
-          <iyy>0.0015793</iyy>
-          <iyz>-7.2879e-06</iyz>
-          <izz>0.00054391</izz>
+          <ixx>0.00037003</ixx>
+          <ixy>1.6936e-06</ixy>
+          <ixz>2.2338e-06</ixz>
+          <iyy>0.0003614</iyy>
+          <iyz>-7.4039e-06</iyz>
+          <izz>0.0001678</izz>
         </inertia>
       </inertial>
       <visual name="visual_geometry">
         <geometry>
           <mesh>
-            <uri>WoodBlock.obj</uri>
+            <uri>SodaCan.obj</uri>
           </mesh>
         </geometry>
       </visual>
@@ -30,8 +30,8 @@
         <drake:proximity_properties>
           <drake:compliant_hydroelastic/>
           <drake:hydroelastic_modulus>1e7</drake:hydroelastic_modulus>
-          <drake:mu_dynamic>0.1</drake:mu_dynamic>
-          <drake:mu_static>0.1</drake:mu_static>
+          <drake:mu_dynamic>0.3</drake:mu_dynamic>
+          <drake:mu_static>0.3</drake:mu_static>
           <drake:hunt_crossley_dissipation>50.0</drake:hunt_crossley_dissipation>
         </drake:proximity_properties>
       </collision>
