@@ -71,6 +71,34 @@ Eigen::Vector3d SelectUpwardAxis(const Eigen::Vector3d& axis) {
     }
 }
 
+// Function to select the predefined axis direction based on input string
+Eigen::Vector3d GetAxisSelectionNormalized(const std::string& direction_flag,
+                                           const Eigen::Vector3d& x_axis_normalized,
+                                           const Eigen::Vector3d& y_axis_normalized,
+                                           const Eigen::Vector3d& z_axis_normalized,
+                                           const Eigen::Vector3d& xy_axis_normalized,
+                                           const Eigen::Vector3d& yz_axis_normalized,
+                                           const Eigen::Vector3d& xz_axis_normalized,
+                                           const Eigen::Vector3d& xyz_axis_normalized) {
+    if (direction_flag == "x") {
+        return x_axis_normalized;
+    } else if (direction_flag == "y") {
+        return y_axis_normalized;
+    } else if (direction_flag == "z") {
+        return z_axis_normalized;
+    } else if (direction_flag == "xy") {
+        return xy_axis_normalized;
+    } else if (direction_flag == "yz") {
+        return yz_axis_normalized;
+    } else if (direction_flag == "xz") {
+        return xz_axis_normalized;
+    } else if (direction_flag == "xyz") {
+        return xyz_axis_normalized;
+    } else {
+        throw std::invalid_argument("Invalid axis selection: " + direction_flag);
+    }
+}
+
 
 
 namespace drake {
@@ -193,6 +221,9 @@ DEFINE_double(advanceSimTo, 5.0, "Time to advance the simulation to in seconds."
 DEFINE_string(uogp_object, "", "Name of the UOGP object to load, e.g., 'CheezItBox'");
 DEFINE_double(force_start, 0.5, "Start of the application of the force.");
 DEFINE_double(force_end, 0.51, "End of the application of the force.");
+DEFINE_string(SelectForceDirection, "y", "Force direction selection: 'x', 'y', 'z', 'xy', 'yz', 'xz', 'xyz'");
+DEFINE_string(SelectMomentDirection, "x", "Moment direction selection: 'x', 'y', 'z', 'xy', 'yz', 'xz', 'xyz'");
+
 
 namespace drake {
     namespace examples {
@@ -241,8 +272,11 @@ namespace drake {
                     double table_correction = FLAGS_table_correction; // Parsed table_correction
                     bool no_height_correction = FLAGS_NoHeightCorrection;
                     double advance_sim_to = FLAGS_advanceSimTo;  // Retrieve the simulation time
+                    double force_magnitude = FLAGS_force_magnitude;
+                    double torque_magnitude = FLAGS_torque_magnitude;
                     std::string uogp_object = FLAGS_uogp_object;
-
+                    std::string select_force_direction = FLAGS_SelectForceDirection;
+                    std::string select_moment_direction = FLAGS_SelectMomentDirection;
 
 
                     std::cout << "Position: " << position_str << std::endl;
@@ -253,7 +287,12 @@ namespace drake {
                     std::cout << "Table Correction: " << table_correction << " meters" << std::endl; // Display table_correction
                     std::cout << "No Height Correction: " << (no_height_correction ? "True" : "False") << std::endl;
                     std::cout << "Advancing simulation to: " << advance_sim_to << " seconds" << std::endl;  // Display simulation time
+                    std::cout << "force magnitude: " << force_magnitude << std::endl;  // Display simulation time
+                    std::cout << "torque magnitude: " << torque_magnitude << std::endl;  // Display simulation time
+                    std::cout << "Advancing simulation to: " << advance_sim_to << " seconds" << std::endl;  // Display simulation time
                     std::cout << "UOGP Object: " << uogp_object << std::endl;
+                    std::cout << "SelectForceDirection: " << select_force_direction << std::endl;
+                    std::cout << "SelectMomentDirection: " << select_moment_direction << std::endl;
 
                     // Parse position and orientation
                     Eigen::Vector3d parsed_position;
@@ -419,7 +458,7 @@ directives:
                     // Force to keep the object standing
                     external_force_applicator->AddForce(0.0, 0.2, 1.0, Vector3d(0, 0, 1));
 
-                    // Add force to be output and specify time window, force multiplier and force direction
+                    // Compute gripper axes
                     Eigen::Vector3d gripper_x_axis = orientation_matrix.matrix().col(0);
                     Eigen::Vector3d gripper_y_axis = orientation_matrix.matrix().col(1);
                     Eigen::Vector3d gripper_z_axis = orientation_matrix.matrix().col(2);
@@ -437,8 +476,51 @@ directives:
                     printVector("gripper_y_axis_selection", gripper_y_axis_selection);
                     printVector("gripper_z_axis_selection", gripper_z_axis_selection);
 
+                    Eigen::Vector3d gripper_x_axis_selection_normalized = gripper_x_axis_selection.normalized();
+                    Eigen::Vector3d gripper_y_axis_selection_normalized = gripper_y_axis_selection.normalized();
+                    Eigen::Vector3d gripper_z_axis_selection_normalized = gripper_z_axis_selection.normalized();
+
+                    Eigen::Vector3d gripper_xy_axis_selection_normalized = (gripper_x_axis_selection + gripper_y_axis_selection).normalized();
+                    Eigen::Vector3d gripper_yz_axis_selection_normalized = (gripper_y_axis_selection + gripper_z_axis_selection).normalized();
+                    Eigen::Vector3d gripper_xz_axis_selection_normalized = (gripper_x_axis_selection + gripper_z_axis_selection).normalized();
+
+                    printVector("gripper_xy_axis_selection_normalized", gripper_xy_axis_selection_normalized);
+                    printVector("gripper_yz_axis_selection_normalized", gripper_yz_axis_selection_normalized);
+                    printVector("gripper_xz_axis_selection_normalized", gripper_xz_axis_selection_normalized);
 
                     Eigen::Vector3d gripper_xyz_axis_selection_normalized = (gripper_x_axis_selection + gripper_y_axis_selection + gripper_z_axis_selection).normalized();
+
+                    printVector("gripper_xyz_axis_selection_normalized", gripper_xyz_axis_selection_normalized);
+
+                    // Function to select axis direction based on the flags
+                    Eigen::Vector3d force_direction;
+                    Eigen::Vector3d torque_direction;
+
+                    try {
+                        force_direction = GetAxisSelectionNormalized(select_force_direction,
+                                                                     gripper_x_axis_selection_normalized,
+                                                                     gripper_y_axis_selection_normalized,
+                                                                     gripper_z_axis_selection_normalized,
+                                                                     gripper_xy_axis_selection_normalized,
+                                                                     gripper_yz_axis_selection_normalized,
+                                                                     gripper_xz_axis_selection_normalized,
+                                                                     gripper_xyz_axis_selection_normalized);
+
+                        torque_direction = GetAxisSelectionNormalized(select_moment_direction,
+                                                                      gripper_x_axis_selection_normalized,
+                                                                      gripper_y_axis_selection_normalized,
+                                                                      gripper_z_axis_selection_normalized,
+                                                                      gripper_xy_axis_selection_normalized,
+                                                                      gripper_yz_axis_selection_normalized,
+                                                                      gripper_xz_axis_selection_normalized,
+                                                                      gripper_xyz_axis_selection_normalized);
+                    } catch (const std::invalid_argument& e) {
+                        std::cerr << "Error: " << e.what() << std::endl;
+                        return 1;
+                    }
+
+                    printVector("Selected force direction", force_direction);
+                    printVector("Selected torque direction", torque_direction);
 
                     // Add a wrench (force and torque)
                     /*
@@ -459,11 +541,12 @@ directives:
 
 
 
-                    // Add a wrench (force and torque)
+                    // Add the wrench using the selected directions
                     external_force_applicator->AddWrench(
                             FLAGS_force_start, FLAGS_force_end,
-                            FLAGS_force_magnitude, gripper_xyz_axis_selection_normalized,   // Force magnitude and normalized direction
-                            FLAGS_torque_magnitude, gripper_xyz_axis_selection_normalized); // Torque magnitude and direction
+                            force_magnitude, force_direction,   // Force magnitude and normalized direction
+                            torque_magnitude, torque_direction); // Torque magnitude and direction
+
 
 
                     // Connect the external force applicator system to the MBP.
@@ -532,16 +615,17 @@ directives:
                               << quat.y() << ", " << quat.z() << ", " << quat.w() << "]" << std::endl;
 
 
-                    /*drake::math::RollPitchYaw<double> rpy(R_WO);
-                    std::cout << "Euler angles (radians): roll = " << rpy.roll_angle()
-                              << ", pitch = " << rpy.pitch_angle()
-                              << ", yaw = " << rpy.yaw_angle() << std::endl;
-                              */
+                    drake::math::RollPitchYaw<double> rpy(R_WO);
 
                     std::cout << "Euler angles (degrees): roll = " << rpy.roll_angle() * 180.0 / M_PI
                               << ", pitch = " << rpy.pitch_angle() * 180.0 / M_PI
                               << ", yaw = " << rpy.yaw_angle() * 180.0 / M_PI << std::endl;
 
+                    /*
+                    std::cout << "Euler angles (radians): roll = " << rpy.roll_angle()
+                              << ", pitch = " << rpy.pitch_angle()
+                              << ", yaw = " << rpy.yaw_angle() << std::endl;
+                              */
 
                     // Pause so that you can see the meshcat output.
                     std::cout << "[Press Ctrl-C to finish]." << std::endl;
