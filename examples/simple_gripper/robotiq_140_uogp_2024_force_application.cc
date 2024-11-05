@@ -191,6 +191,8 @@ DEFINE_double(torque_magnitude, 1.0, "Magnitude of the applied torque in Newton-
 DEFINE_bool(NoHeightCorrection, false, "If true, does not correct the height");
 DEFINE_double(advanceSimTo, 5.0, "Time to advance the simulation to in seconds.");
 DEFINE_string(uogp_object, "", "Name of the UOGP object to load, e.g., 'CheezItBox'");
+DEFINE_double(force_start, 0.5, "Start of the application of the force.");
+DEFINE_double(force_end, 0.51, "End of the application of the force.");
 
 namespace drake {
     namespace examples {
@@ -459,7 +461,7 @@ directives:
 
                     // Add a wrench (force and torque)
                     external_force_applicator->AddWrench(
-                            0.7, 0.71,
+                            FLAGS_force_start, FLAGS_force_end,
                             FLAGS_force_magnitude, gripper_xyz_axis_selection_normalized,   // Force magnitude and normalized direction
                             FLAGS_torque_magnitude, gripper_xyz_axis_selection_normalized); // Torque magnitude and direction
 
