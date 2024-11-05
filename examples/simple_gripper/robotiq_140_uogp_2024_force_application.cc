@@ -219,8 +219,8 @@ DEFINE_double(torque_magnitude, 1.0, "Magnitude of the applied torque in Newton-
 DEFINE_bool(NoHeightCorrection, false, "If true, does not correct the height");
 DEFINE_double(advanceSimTo, 5.0, "Time to advance the simulation to in seconds.");
 DEFINE_string(uogp_object, "", "Name of the UOGP object to load, e.g., 'CheezItBox'");
-DEFINE_double(force_start, 0.5, "Start of the application of the force.");
-DEFINE_double(force_end, 0.51, "End of the application of the force.");
+DEFINE_double(force_start, 0.55, "Start of the application of the force.");
+DEFINE_double(force_end, 0.56, "End of the application of the force.");
 DEFINE_string(SelectForceDirection, "y", "Force direction selection: 'x', 'y', 'z', 'xy', 'yz', 'xz', 'xyz'");
 DEFINE_string(SelectMomentDirection, "x", "Moment direction selection: 'x', 'y', 'z', 'xy', 'yz', 'xz', 'xyz'");
 
@@ -289,7 +289,6 @@ namespace drake {
                     std::cout << "Advancing simulation to: " << advance_sim_to << " seconds" << std::endl;  // Display simulation time
                     std::cout << "force magnitude: " << force_magnitude << std::endl;  // Display simulation time
                     std::cout << "torque magnitude: " << torque_magnitude << std::endl;  // Display simulation time
-                    std::cout << "Advancing simulation to: " << advance_sim_to << " seconds" << std::endl;  // Display simulation time
                     std::cout << "UOGP Object: " << uogp_object << std::endl;
                     std::cout << "SelectForceDirection: " << select_force_direction << std::endl;
                     std::cout << "SelectMomentDirection: " << select_moment_direction << std::endl;
