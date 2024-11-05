@@ -412,6 +412,12 @@ directives:
                     const auto& X_WO = plant.EvalBodyPoseInWorld(plant_context, object);
                     const Vector3<double> object_com_W = X_WO * object_com;
 
+                    const drake::math::RotationMatrix<double>& R_WO = X_WO.rotation();
+
+                    Eigen::Quaterniond quat = R_WO.ToQuaternion();
+                    std::cout << "object quaternion (x, y, z, w): [" << quat.x() << ", "
+                              << quat.y() << ", " << quat.z() << ", " << quat.w() << "]" << std::endl;
+
                     // Center of Mass of the to-be-grasped object
                     std::cout << "  object_com: [" << object_com_W.x() << ", " << object_com_W.y() << ", " << object_com_W.z() << "]" << std::endl;
 
