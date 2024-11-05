@@ -520,6 +520,29 @@ directives:
                     // Center of Mass of the to be grasped object
                     std::cout << "  object_com: [" << object_com_W.x() << ", " << object_com_W.y() << ", " << object_com_W.z() << "]" << std::endl;
 
+
+                    const drake::math::RotationMatrix<double>& R_WO = X_WO.rotation();
+
+
+                    //std::cout << "Rotation Matrix R_WO:\n" << R_WO.matrix() << std::endl; // doesn't work
+
+
+                    Eigen::Quaterniond quat = R_WO.ToQuaternion();
+                    std::cout << "Quaternion (x, y, z, w): [" << quat.x() << ", "
+                              << quat.y() << ", " << quat.z() << ", " << quat.w() << "]" << std::endl;
+
+
+                    /*drake::math::RollPitchYaw<double> rpy(R_WO);
+                    std::cout << "Euler angles (radians): roll = " << rpy.roll_angle()
+                              << ", pitch = " << rpy.pitch_angle()
+                              << ", yaw = " << rpy.yaw_angle() << std::endl;
+                              */
+
+                    std::cout << "Euler angles (degrees): roll = " << rpy.roll_angle() * 180.0 / M_PI
+                              << ", pitch = " << rpy.pitch_angle() * 180.0 / M_PI
+                              << ", yaw = " << rpy.yaw_angle() * 180.0 / M_PI << std::endl;
+
+
                     // Pause so that you can see the meshcat output.
                     std::cout << "[Press Ctrl-C to finish]." << std::endl;
                     std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
