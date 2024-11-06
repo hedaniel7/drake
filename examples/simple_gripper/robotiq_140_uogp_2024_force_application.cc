@@ -223,6 +223,9 @@ DEFINE_double(force_start, 0.55, "Start of the application of the force.");
 DEFINE_double(force_end, 0.56, "End of the application of the force.");
 DEFINE_string(SelectForceDirection, "y", "Force direction selection: 'x', 'y', 'z', 'xy', 'yz', 'xz', 'xyz'");
 DEFINE_string(SelectMomentDirection, "x", "Moment direction selection: 'x', 'y', 'z', 'xy', 'yz', 'xz', 'xyz'");
+DEFINE_bool(useNegativeForceAxis, false, "If true, invert the selected force axis direction.");
+DEFINE_bool(useNegativeMomentAxis, false, "If true, invert the selected moment axis direction.");
+
 
 
 namespace drake {
@@ -277,6 +280,9 @@ namespace drake {
                     std::string uogp_object = FLAGS_uogp_object;
                     std::string select_force_direction = FLAGS_SelectForceDirection;
                     std::string select_moment_direction = FLAGS_SelectMomentDirection;
+                    bool use_negative_force_axis = FLAGS_useNegativeForceAxis;
+                    bool use_negative_moment_axis = FLAGS_useNegativeMomentAxis;
+
 
 
                     std::cout << "Position: " << position_str << std::endl;
@@ -292,6 +298,9 @@ namespace drake {
                     std::cout << "UOGP Object: " << uogp_object << std::endl;
                     std::cout << "SelectForceDirection: " << select_force_direction << std::endl;
                     std::cout << "SelectMomentDirection: " << select_moment_direction << std::endl;
+                    std::cout << "Use Negative Force Axis: " << (use_negative_force_axis ? "True" : "False") << std::endl;
+                    std::cout << "Use Negative Moment Axis: " << (use_negative_moment_axis ? "True" : "False") << std::endl;
+
 
                     // Parse position and orientation
                     Eigen::Vector3d parsed_position;
@@ -516,6 +525,15 @@ directives:
                     } catch (const std::invalid_argument& e) {
                         std::cerr << "Error: " << e.what() << std::endl;
                         return 1;
+                    }
+
+                    // Apply negative axis flags
+                    if (use_negative_force_axis) {
+                        force_direction = -force_direction;
+                    }
+
+                    if (use_negative_moment_axis) {
+                        torque_direction = -torque_direction;
                     }
 
                     printVector("Selected force direction", force_direction);
