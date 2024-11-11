@@ -41,6 +41,13 @@
 #include "drake/math/rigid_transform.h"
 #include <drake/multibody/tree/spatial_inertia.h>
 
+#include "drake/multibody/tree/multibody_tree_indexes.h"
+#include "drake/geometry/geometry_ids.h"
+#include "drake/geometry/scene_graph_inspector.h"
+#include "drake/geometry/query_object.h"
+#include "drake/geometry/scene_graph_inspector.h"
+#include "drake/geometry/query_results/penetration_as_point_pair.h"
+
 namespace drake {
     namespace multibody {
 
@@ -155,6 +162,18 @@ namespace drake {
             using Eigen::Vector3d;
             using multibody::ContactResults;
             using multibody::HydroelasticContactInfo;
+            using drake::multibody::BodyIndex;
+            using drake::multibody::PointPairContactInfo;
+            using drake::geometry::GeometryId;
+
+            // Add using declarations
+            using drake::geometry::GeometryId;
+            using drake::geometry::FrameId;
+            using drake::geometry::QueryObject;
+            using drake::geometry::PenetrationAsPointPair;
+            using drake::multibody::ModelInstanceIndex;
+
+
             namespace {
 
                 Eigen::Vector3d parse_position(const std::string& position_str) {
@@ -177,7 +196,7 @@ namespace drake {
                     return Eigen::Quaterniond(w, x, y, z).normalized();
                 }
 
-// Function to predict gripper grasp point for the robotiq 140 for a given opening in meters
+                // Function to predict gripper grasp point for the robotiq 140 for a given opening in meters
                 double predict_robotiq140_gripper_grasp_point_height(double cgn_gripper_width) {
                     // cgn_gripper_width is in meters, so we need to convert it to mm for our original function
                     double x_mm = cgn_gripper_width * 1000;
@@ -420,6 +439,82 @@ directives:
 
                     // Center of Mass of the to-be-grasped object
                     std::cout << "  object_com: [" << object_com_W.x() << ", " << object_com_W.y() << ", " << object_com_W.z() << "]" << std::endl;
+
+                    // Obtain the QueryObject from the plant's geometry query input port.
+                    const auto& query_object = plant.get_geometry_query_input_port().Eval<QueryObject<double>>(plant_context);
+
+                    // Access the SceneGraph's inspector.
+                    const auto& inspector = query_object.inspector();
+
+                    // Get the list of all penetrations.
+                    std::vector<PenetrationAsPointPair<double>> penetration_pairs = query_object.ComputePointPairPenetration();
+
+                    // Get the ModelInstanceIndex of the gripper, table, and object
+                    ModelInstanceIndex gripper_model_instance = plant.GetModelInstanceByName("robotiq_arg2f_140_model");
+                    ModelInstanceIndex table_model_instance = plant.GetModelInstanceByName("table");
+                    ModelInstanceIndex object_model_instance = plant.GetModelInstanceByName("spam");
+
+                    // Collect BodyIndices of the gripper
+                    std::vector<BodyIndex> gripper_body_indices = plant.GetBodyIndices(gripper_model_instance);
+
+                    // Collect BodyIndices of the table
+                    std::vector<BodyIndex> table_body_indices = plant.GetBodyIndices(table_model_instance);
+
+                    // Collect BodyIndices of the object
+                    std::vector<BodyIndex> object_body_indices = plant.GetBodyIndices(object_model_instance);
+
+                    // Initialize flags.
+                    bool gripper_in_contact_with_table = false;
+                    bool gripper_in_contact_with_object = false;
+
+                    // Process the penetration pairs.
+                    for (const auto& penetration : penetration_pairs) {
+                        GeometryId geometryA_id = penetration.id_A;
+                        GeometryId geometryB_id = penetration.id_B;
+
+                        // Map GeometryId to FrameId using the inspector.
+                        FrameId frameA_id = inspector.GetFrameId(geometryA_id);
+                        FrameId frameB_id = inspector.GetFrameId(geometryB_id);
+
+                        // Get the Body associated with each FrameId.
+                        const multibody::Body<double>* bodyA = plant.GetBodyFromFrameId(frameA_id);
+                        const multibody::Body<double>* bodyB = plant.GetBodyFromFrameId(frameB_id);
+
+                        // Ensure the pointers are valid.
+                        DRAKE_DEMAND(bodyA != nullptr);
+                        DRAKE_DEMAND(bodyB != nullptr);
+
+                        // Get the BodyIndex for each body.
+                        BodyIndex bodyA_index = bodyA->index();
+                        BodyIndex bodyB_index = bodyB->index();
+
+                        // Check if bodyA is part of the gripper.
+                        bool bodyA_is_gripper = std::find(gripper_body_indices.begin(), gripper_body_indices.end(), bodyA_index) != gripper_body_indices.end();
+                        bool bodyB_is_gripper = std::find(gripper_body_indices.begin(), gripper_body_indices.end(), bodyB_index) != gripper_body_indices.end();
+
+                        // Similarly, check for table and object.
+                        bool bodyA_is_table = std::find(table_body_indices.begin(), table_body_indices.end(), bodyA_index) != table_body_indices.end();
+                        bool bodyB_is_table = std::find(table_body_indices.begin(), table_body_indices.end(), bodyB_index) != table_body_indices.end();
+
+                        bool bodyA_is_object = std::find(object_body_indices.begin(), object_body_indices.end(), bodyA_index) != object_body_indices.end();
+                        bool bodyB_is_object = std::find(object_body_indices.begin(), object_body_indices.end(), bodyB_index) != object_body_indices.end();
+
+                        // Check for gripper-table collisions.
+                        if ((bodyA_is_gripper && bodyB_is_table) || (bodyA_is_table && bodyB_is_gripper)) {
+                            gripper_in_contact_with_table = true;
+                        }
+
+                        // Check for gripper-object collisions.
+                        if ((bodyA_is_gripper && bodyB_is_object) || (bodyA_is_object && bodyB_is_gripper)) {
+                            gripper_in_contact_with_object = true;
+                        }
+                    }
+
+                    // Output the collision results.
+                    std::cout << "Gripper in collision with table: "
+                              << (gripper_in_contact_with_table ? "Yes" : "No") << std::endl;
+                    std::cout << "Gripper in collision with object: "
+                              << (gripper_in_contact_with_object ? "Yes" : "No") << std::endl;
 
                     // Pause so that you can see the Meshcat output.
                     std::cout << "[Press Enter to finish]." << std::endl;
