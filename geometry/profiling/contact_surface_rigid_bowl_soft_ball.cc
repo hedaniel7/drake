@@ -45,6 +45,7 @@ namespace drake {
 namespace examples {
 namespace scene_graph {
 namespace contact_surface {
+namespace {
 
 using Eigen::Vector3d;
 using Eigen::Vector4d;
@@ -135,7 +136,7 @@ DEFINE_bool(polygons, true,
  */
 class MovingCompliantGeometry final : public LeafSystem<double> {
  public:
-  DRAKE_NO_COPY_NO_MOVE_NO_ASSIGN(MovingCompliantGeometry)
+  DRAKE_NO_COPY_NO_MOVE_NO_ASSIGN(MovingCompliantGeometry);
 
   // Ball radius 2.5cm.
   static constexpr double kRadius = 0.025;
@@ -236,7 +237,7 @@ class MovingCompliantGeometry final : public LeafSystem<double> {
  */
 class ContactResultMaker final : public LeafSystem<double> {
  public:
-  DRAKE_NO_COPY_NO_MOVE_NO_ASSIGN(ContactResultMaker)
+  DRAKE_NO_COPY_NO_MOVE_NO_ASSIGN(ContactResultMaker);
 
   ContactResultMaker() {
     geometry_query_input_port_ =
@@ -430,6 +431,7 @@ int do_main() {
   return 0;
 }
 
+}  // namespace
 }  // namespace contact_surface
 }  // namespace scene_graph
 }  // namespace examples

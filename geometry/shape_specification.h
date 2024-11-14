@@ -1,5 +1,6 @@
 #pragma once
 
+#include <filesystem>
 #include <memory>
 #include <string>
 #include <variant>
@@ -8,6 +9,7 @@
 #include "drake/common/drake_deprecated.h"
 #include "drake/common/eigen_types.h"
 #include "drake/common/fmt_ostream.h"
+#include "drake/geometry/mesh_source.h"
 #include "drake/geometry/proximity/polygon_surface_mesh.h"
 #include "drake/math/rigid_transform.h"
 
@@ -151,7 +153,7 @@ class Shape {
  is given by three sizes. */
 class Box final : public Shape {
  public:
-  DRAKE_DEFAULT_COPY_AND_MOVE_AND_ASSIGN(Box)
+  DRAKE_DEFAULT_COPY_AND_MOVE_AND_ASSIGN(Box);
 
   /** Constructs a box with the given `width`, `depth`, and `height`, which
    specify the box's dimension along the canonical x-, y-, and z-axes,
@@ -202,7 +204,7 @@ class Box final : public Shape {
  length of the capsule parallel with the frame's z-axis. */
 class Capsule final : public Shape {
  public:
-  DRAKE_DEFAULT_COPY_AND_MOVE_AND_ASSIGN(Capsule)
+  DRAKE_DEFAULT_COPY_AND_MOVE_AND_ASSIGN(Capsule);
 
   /** Constructs a capsule with the given `radius` and `length`.
    @throws std::exception if `radius` or `length` are not strictly positive.
@@ -245,7 +247,7 @@ class Capsule final : public Shape {
  `scale` amount. */
 class Convex final : public Shape {
  public:
-  DRAKE_DEFAULT_COPY_AND_MOVE_AND_ASSIGN(Convex)
+  DRAKE_DEFAULT_COPY_AND_MOVE_AND_ASSIGN(Convex);
 
   /** Constructs a convex shape specification from the file located at the
    given file path. Optionally uniformly scaled by the given scale factor.
@@ -262,16 +264,57 @@ class Convex final : public Shape {
                                 convenience tool for "tweaking" models. 8 orders
                                 of magnitude should be plenty without
                                 considering revisiting the model itself. */
-  explicit Convex(const std::string& filename, double scale = 1.0);
+  explicit Convex(const std::filesystem::path& filename, double scale = 1.0);
+
+  /** Constructs a convex shape specification from the contents of a
+   Drake-supported mesh file type.
+
+   The mesh is defined by the contents of a @ref supported_file_types
+   "mesh file format supported by Drake". Those contents are passed in as
+   `mesh_data`. For %Convex, the only supporting files required are those
+   necessary to define vertex positions (e.g., a glTF's .bin file); material
+   and texture files, if provided, are ignored and are therefore unnecessary.
+
+   @param mesh_data   The in-memory file contents that define the vertex data
+                      for this shape.
+   @param scale       An optional scale to coordinates. */
+  explicit Convex(InMemoryMesh mesh_data, double scale = 1.0);
+
+  /** Constructs a convex shape specification from the given `source`.
+
+   @param source   The source for the mesh data.
+   @param scale    An optional scale to coordinates. */
+  explicit Convex(MeshSource source, double scale = 1.0);
 
   ~Convex() final;
 
-  const std::string& filename() const { return filename_; }
-  /** Returns the extension of the mesh filename -- all lower case and including
-   the dot. In other words /foo/bar/mesh.obj and /foo/bar/mesh.OBJ would both
-   report the ".obj" extension. The "extension" portion of the filename is
-   defined as in std::filesystem::path::extension(). */
-  const std::string& extension() const { return extension_; }
+  /** Returns the source for this specification's mesh data. When working with
+   %Convex, this API should only be used for introspection. The contract for
+   %Convex is that the convex hull is always used in place of whatever
+   underlying mesh declaration is provided. For all functional geometric
+   usage, exclusively use the convex hull returned by GetConvexHull(). */
+  const MeshSource& source() const { return source_; }
+
+  /** Returns the filename passed to the constructor.
+   @throws std::exception if `this` %Convex was constructed using in-memory file
+                          contents.
+   @see source().is_path(). */
+  DRAKE_DEPRECATED(
+      "2025-04-01",
+      "Convex shapes can be defined from a file path or in memory data. Use "
+      "Convex::source() to determine if a filename is available.")
+  std::string filename() const;
+
+  /** Returns the extension of the underlying input mesh -- all lower case and
+   including the dot. If `this` is constructed from a file path, the extension
+   is extracted from the path. I.e., /foo/bar/mesh.obj and /foo/bar/mesh.OBJ
+   would both report the ".obj" extension. The "extension" portion of the
+   filename is defined as in std::filesystem::path::extension().
+
+   If `this` is constructed using in-memory file contents, it is the extension
+   of the MemoryFile passed to the constructor. */
+  const std::string& extension() const { return source_.extension(); }
+
   double scale() const { return scale_; }
 
   /** Reports the convex hull of the named mesh.
@@ -292,8 +335,7 @@ class Convex final : public Shape {
   std::string do_to_string() const final;
   VariantShapeConstPtr get_variant_this() const final;
 
-  std::string filename_;
-  std::string extension_;
+  MeshSource source_;
   double scale_{};
   // Allows the deferred computation of the hull on an otherwise const Convex.
   mutable std::shared_ptr<PolygonSurfaceMesh<double>> hull_{nullptr};
@@ -303,7 +345,7 @@ class Convex final : public Shape {
  length of the cylinder parallel with the frame's z-axis. */
 class Cylinder final : public Shape {
  public:
-  DRAKE_DEFAULT_COPY_AND_MOVE_AND_ASSIGN(Cylinder)
+  DRAKE_DEFAULT_COPY_AND_MOVE_AND_ASSIGN(Cylinder);
 
   /** Constructs a cylinder with the given `radius` and `length`.
    @throws std::exception if `radius` or `length` are not strictly positive.
@@ -341,7 +383,7 @@ class Cylinder final : public Shape {
 */
 class Ellipsoid final : public Shape {
  public:
-  DRAKE_DEFAULT_COPY_AND_MOVE_AND_ASSIGN(Ellipsoid)
+  DRAKE_DEFAULT_COPY_AND_MOVE_AND_ASSIGN(Ellipsoid);
 
   /** Constructs an ellipsoid with the given lengths of its principal
    semi-axes, with a, b, and c measured along the x-, y-, and z- axes of the
@@ -380,7 +422,7 @@ class Ellipsoid final : public Shape {
  normal. */
 class HalfSpace final : public Shape {
  public:
-  DRAKE_DEFAULT_COPY_AND_MOVE_AND_ASSIGN(HalfSpace)
+  DRAKE_DEFAULT_COPY_AND_MOVE_AND_ASSIGN(HalfSpace);
 
   HalfSpace();
 
@@ -441,7 +483,7 @@ class HalfSpace final : public Shape {
  `scale` amount. */
 class Mesh final : public Shape {
  public:
-  DRAKE_DEFAULT_COPY_AND_MOVE_AND_ASSIGN(Mesh)
+  DRAKE_DEFAULT_COPY_AND_MOVE_AND_ASSIGN(Mesh);
 
   /** Constructs a mesh shape specification from the mesh file located at the
    given file path. Optionally uniformly scaled by the given scale factor.
@@ -460,16 +502,52 @@ class Mesh final : public Shape {
                                 convenience tool for "tweaking" models. 8 orders
                                 of magnitude should be plenty without
                                 considering revisiting the model itself. */
-  explicit Mesh(const std::string& filename, double scale = 1.0);
+  explicit Mesh(const std::filesystem::path& filename, double scale = 1.0);
+
+  /** Constructs a mesh shape specification from the contents of a
+   Drake-supported mesh file type.
+
+   The mesh is defined by the contents of a @ref supported_file_types
+   "mesh file format supported by Drake". Those contents are passed in as
+   `mesh_data`. The mesh data should include the main mesh file's contents as
+   well as any supporting file contents as needed. See InMemoryMesh.
+
+   @param mesh_data   The in-memory file contents that define the mesh data for
+                      this shape.
+   @param scale       An optional scale to coordinates. */
+  explicit Mesh(InMemoryMesh mesh_data, double scale = 1.0);
+
+  /** Constructs a mesh shape specification from the given `source`.
+
+   @param source   The source for the mesh data.
+   @param scale    An optional scale to coordinates. */
+  explicit Mesh(MeshSource source, double scale = 1.0);
 
   ~Mesh() final;
 
-  const std::string& filename() const { return filename_; }
-  /** Returns the extension of the mesh filename -- all lower case and including
-   the dot. In other words /foo/bar/mesh.obj and /foo/bar/mesh.OBJ would both
-   report the ".obj" extension. The "extension" portion of the filename is
-   defined as in std::filesystem::path::extension(). */
-  const std::string& extension() const { return extension_; }
+  /** Returns the source for this specification's mesh data. */
+  const MeshSource& source() const { return source_; }
+
+  /** Returns the filename passed to the constructor.
+   @throws std::exception if `this` %Mesh was constructed using in-memory file
+                          contents.
+   @see source().is_path(). */
+  DRAKE_DEPRECATED(
+      "2025-04-01",
+      "Meshes can be defined from a file path or in memory data. Use "
+      "Mesh::source() to determine if a filename is available.")
+  std::string filename() const;
+
+  /** Returns the extension of the mesh type -- all lower case and including
+   the dot. If `this` is constructed from a file path, the extension is
+   extracted from the path. I.e., /foo/bar/mesh.obj and /foo/bar/mesh.OBJ would
+   both report the ".obj" extension. The "extension" portion of the filename is
+   defined as in std::filesystem::path::extension().
+
+   If `this` is constructed using in-memory file contents, it is the extension
+   of the MemoryFile passed to the constructor. */
+  const std::string& extension() const { return source_.extension(); }
+
   double scale() const { return scale_; }
 
   /** Reports the convex hull of the named mesh.
@@ -491,8 +569,7 @@ class Mesh final : public Shape {
   VariantShapeConstPtr get_variant_this() const final;
 
   // NOTE: Cannot be const to support default copy/move semantics.
-  std::string filename_;
-  std::string extension_;
+  MeshSource source_;
   double scale_{};
   // Allows the deferred computation of the hull on an otherwise const Mesh.
   mutable std::shared_ptr<PolygonSurfaceMesh<double>> hull_{nullptr};
@@ -514,7 +591,7 @@ class Mesh final : public Shape {
 */
 class MeshcatCone final : public Shape {
  public:
-  DRAKE_DEFAULT_COPY_AND_MOVE_AND_ASSIGN(MeshcatCone)
+  DRAKE_DEFAULT_COPY_AND_MOVE_AND_ASSIGN(MeshcatCone);
 
   /** Constructs the parameterized cone.
    @throws std::exception if `height`, `a`, or `b` are not strictly positive.
@@ -548,7 +625,7 @@ class MeshcatCone final : public Shape {
  given radius. */
 class Sphere final : public Shape {
  public:
-  DRAKE_DEFAULT_COPY_AND_MOVE_AND_ASSIGN(Sphere)
+  DRAKE_DEFAULT_COPY_AND_MOVE_AND_ASSIGN(Sphere);
 
   /** Constructs a sphere with the given `radius`.
    @throws std::exception if `radius` is negative. Note that a zero radius is
@@ -633,7 +710,7 @@ class ShapeReifier {
   virtual void ImplementGeometry(const Sphere& sphere, void* user_data);
 
  protected:
-  DRAKE_DEFAULT_COPY_AND_MOVE_AND_ASSIGN(ShapeReifier)
+  DRAKE_DEFAULT_COPY_AND_MOVE_AND_ASSIGN(ShapeReifier);
   ShapeReifier() = default;
 
   /** The default implementation of ImplementGeometry(): it throws an exception
@@ -648,35 +725,6 @@ class ShapeReifier {
   virtual void ThrowUnsupportedGeometry(const std::string& shape_name);
 };
 
-class DRAKE_DEPRECATED("2024-06-01",
-                       "Use the Shape::type_name() member function instead")
-    ShapeName final : public ShapeReifier {
- public:
-  ShapeName() = default;
-
-  /** Constructs a %ShapeName from the given `shape` such that `string()`
-   already contains the string representation of `shape`.  */
-  explicit ShapeName(const Shape& shape);
-
-  ~ShapeName() final;
-
-  /** Returns the name of the last shape reified. Empty if no shape has been
-   reified yet.  */
-  std::string name() const { return string_; }
-
- private:
-  void DefaultImplementGeometry(const Shape& shape) final;
-
-  std::string string_;
-};
-
-#ifndef DRAKE_DOXYGEN_CXX
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-std::ostream& operator<<(std::ostream& out, const ShapeName& name);
-#pragma GCC diagnostic pop
-#endif
-
 /** Calculates the volume (in meters^3) for the Shape. For convex and mesh
  geometries, the algorithm only supports ".obj" files and only produces
  meaningful results for "closed" shapes.
@@ -689,16 +737,6 @@ double CalcVolume(const Shape& shape);
 
 }  // namespace geometry
 }  // namespace drake
-
-#ifndef DRAKE_DOXYGEN_CXX
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-namespace fmt {
-template <>
-struct formatter<drake::geometry::ShapeName> : drake::ostream_formatter {};
-}  // namespace fmt
-#pragma GCC diagnostic pop
-#endif
 
 DRAKE_FORMATTER_AS(, drake::geometry, Box, x, x.to_string())
 DRAKE_FORMATTER_AS(, drake::geometry, Capsule, x, x.to_string())

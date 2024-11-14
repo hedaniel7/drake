@@ -21,7 +21,7 @@ namespace trajectories {
 template <typename T>
 class Trajectory {
  public:
-  virtual ~Trajectory() = default;
+  virtual ~Trajectory();
 
   /**
    * @return A deep copy of this Trajectory.
@@ -96,7 +96,7 @@ class Trajectory {
 
  protected:
   // Final subclasses are allowed to make copy/move/assign public.
-  DRAKE_DEFAULT_COPY_AND_MOVE_AND_ASSIGN(Trajectory)
+  DRAKE_DEFAULT_COPY_AND_MOVE_AND_ASSIGN(Trajectory);
   Trajectory() = default;
 
   virtual bool do_has_derivative() const;
@@ -111,4 +111,4 @@ class Trajectory {
 }  // namespace drake
 
 DRAKE_DECLARE_CLASS_TEMPLATE_INSTANTIATIONS_ON_DEFAULT_SCALARS(
-    class drake::trajectories::Trajectory)
+    class drake::trajectories::Trajectory);

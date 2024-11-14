@@ -7,6 +7,7 @@
 #include "drake/common/default_scalars.h"
 #include "drake/common/eigen_types.h"
 #include "drake/geometry/proximity/obj_to_surface_mesh.h"
+#include "drake/geometry/proximity/polygon_to_triangle_mesh.h"
 
 namespace drake {
 namespace geometry {
@@ -96,13 +97,13 @@ VolumeMesh<T> MakeConvexVolumeMesh(
 template <typename T>
 VolumeMesh<T> MakeConvexVolumeMesh(const Convex& convex) {
   return MakeConvexVolumeMesh<T>(
-      ReadObjToTriangleSurfaceMesh(convex.filename(), convex.scale()));
+      internal::MakeTriangleFromPolygonMesh(convex.GetConvexHull()));
 }
 
 DRAKE_DEFINE_FUNCTION_TEMPLATE_INSTANTIATIONS_ON_DEFAULT_NONSYMBOLIC_SCALARS(
     (static_cast<VolumeMesh<T> (*)(const Convex&)>(&MakeConvexVolumeMesh<T>),
      static_cast<VolumeMesh<T> (*)(const TriangleSurfaceMesh<double>&)>(
-         &MakeConvexVolumeMesh<T>)))
+         &MakeConvexVolumeMesh<T>)));
 
 }  // namespace internal
 }  // namespace geometry

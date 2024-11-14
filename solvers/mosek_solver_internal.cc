@@ -7,12 +7,14 @@
 
 #include "drake/common/fmt_ostream.h"
 #include "drake/common/never_destroyed.h"
+#include "drake/common/parallelism.h"
 #include "drake/math/quadratic_form.h"
 #include "drake/solvers/aggregate_costs_constraints.h"
 
 namespace drake {
 namespace solvers {
 namespace internal {
+namespace {
 // Given a vector of triplets (which might contain duplicated entries in the
 // matrix), returns the vector of rows, columns and values.
 void ConvertTripletsToVectors(
@@ -37,6 +39,7 @@ void ConvertTripletsToVectors(
     }
   }
 }
+}  // namespace
 
 size_t MatrixVariableEntry::get_next_id() {
   static never_destroyed<std::atomic<int>> next_id(0);
@@ -836,6 +839,7 @@ MSKrescodee MosekSolverProgram::AddPositiveSemidefiniteConstraints(
   bar_var_dimension.reserve(prog.positive_semidefinite_constraints().size());
   int psd_count = 0;
   for (const auto& binding : prog.positive_semidefinite_constraints()) {
+    binding.evaluator()->WarnOnSmallMatrixSize();
     bar_var_dimension.push_back(binding.evaluator()->matrix_rows());
     psd_barvar_indices->emplace(binding, numbarvar + psd_count);
     psd_count++;
@@ -869,6 +873,7 @@ MSKrescodee MosekSolverProgram::AddLinearMatrixInequalityConstraint(
   // where A is a sparse matrix.
   std::vector<Eigen::Triplet<double>> A_triplets;
   for (const auto& binding : prog.linear_matrix_inequality_constraints()) {
+    binding.evaluator()->WarnOnSmallMatrixSize();
     // Allocate memory for A_triplets. We allocate the maximal memory by
     // assuming that A is dense.
     // TODO(hongkai.dai): change LinearMatrixInequalityConstraint::F() to return
@@ -1069,8 +1074,9 @@ MSKrescodee MosekSolverProgram::AddQuadraticCost(
   for (int j = 0; j < Q_quadratic_vars.outerSize(); ++j) {
     for (Eigen::SparseMatrix<double>::InnerIterator it(Q_quadratic_vars, j); it;
          ++it) {
-      Q_lower_triplets.emplace_back(var_indices[it.row()],
-                                    var_indices[it.col()], it.value());
+      int row = std::max(var_indices[it.row()], var_indices[it.col()]);
+      int col = std::min(var_indices[it.row()], var_indices[it.col()]);
+      Q_lower_triplets.emplace_back(row, col, it.value());
     }
   }
   std::vector<MSKint32t> qrow, qcol;
@@ -1489,65 +1495,64 @@ void MSKAPI printstr(void*, const char str[]) {
 
 }  // namespace
 
-MSKrescodee MosekSolverProgram::UpdateOptions(
-    const SolverOptions& merged_options, const SolverId mosek_id,
-    bool* print_to_console, std::string* print_file_name,
+void MosekSolverProgram::UpdateOptions(
+    internal::SpecificOptions* options, bool* is_printing,
     std::optional<std::string>* msk_writedata) {
-  MSKrescodee rescode{MSK_RES_OK};
-  for (const auto& double_options : merged_options.GetOptionsDouble(mosek_id)) {
-    if (rescode == MSK_RES_OK) {
-      rescode = MSK_putnadouparam(task_, double_options.first.c_str(),
-                                  double_options.second);
-      ThrowForInvalidOption(rescode, double_options.first,
-                            double_options.second);
-    }
-  }
-  for (const auto& int_options : merged_options.GetOptionsInt(mosek_id)) {
-    if (rescode == MSK_RES_OK) {
-      rescode = MSK_putnaintparam(task_, int_options.first.c_str(),
-                                  int_options.second);
-      ThrowForInvalidOption(rescode, int_options.first, int_options.second);
-    }
-  }
-  for (const auto& str_options : merged_options.GetOptionsStr(mosek_id)) {
-    if (rescode == MSK_RES_OK) {
-      if (str_options.first == "writedata") {
-        if (str_options.second != "") {
-          msk_writedata->emplace(str_options.second);
-        }
-      } else {
-        rescode = MSK_putnastrparam(task_, str_options.first.c_str(),
-                                    str_options.second.c_str());
-        ThrowForInvalidOption(rescode, str_options.first, str_options.second);
-      }
-    }
-  }
-  // log file.
-  *print_to_console = merged_options.get_print_to_console();
-  *print_file_name = merged_options.get_print_file_name();
-  // Refer to https://docs.mosek.com/10.1/capi/solver-io.html#stream-logging
-  // for Mosek stream logging.
-  // First we check if the user wants to print to both the console and the file.
-  // If true, throw an error BEFORE we create the log file through
-  // MSK_linkfiletotaskstream. Otherwise we might create the log file but cannot
-  // close it.
-  if (*print_to_console && !print_file_name->empty()) {
-    throw std::runtime_error(
-        "MosekSolver::Solve(): cannot print to both the console and the log "
-        "file.");
-  } else if (*print_to_console) {
-    if (rescode == MSK_RES_OK) {
-      rescode =
-          MSK_linkfunctotaskstream(task_, MSK_STREAM_LOG, nullptr, printstr);
-    }
-  } else if (!print_file_name->empty()) {
-    if (rescode == MSK_RES_OK) {
-      rescode = MSK_linkfiletotaskstream(task_, MSK_STREAM_LOG,
-                                         print_file_name->c_str(), 0);
-    }
-  }
+  // The "writedata" option needs special handling.
+  *msk_writedata = options->template Pop<std::string>("writedata");
 
-  return rescode;
+  // Copy all remaining options into our `task_`.
+  options->Respell([&](const auto& common, auto* respelled) {
+    // This is a convenient place to configure printing (i.e., logging); see
+    // https://docs.mosek.com/10.1/capi/solver-io.html#stream-logging.
+    // Printing to console vs file are mutually exclusive; if the user has
+    // requested both, then we must throw an error BEFORE we create the log
+    // file; otherwise we might create it but never close it.
+    if (common.print_to_console && common.print_file_name.size()) {
+      throw std::logic_error(
+          "MosekSolver: cannot print to both the console and a file");
+    }
+    *is_printing = false;
+    if (common.print_to_console) {
+      DRAKE_DEMAND(common.print_file_name.empty());
+      MSKrescodee rescode =
+          MSK_linkfunctotaskstream(task_, MSK_STREAM_LOG, nullptr, printstr);
+      if (rescode != MSK_RES_OK) {
+        throw std::runtime_error(fmt::format(
+            "MosekSolver(): kPrintToConsole=1 failed with response code {}",
+            fmt_streamed(rescode)));
+      }
+      *is_printing = true;
+    }
+    if (!common.print_file_name.empty()) {
+      DRAKE_DEMAND(common.print_to_console == false);
+      MSKrescodee rescode = MSK_linkfiletotaskstream(
+          task_, MSK_STREAM_LOG, common.print_file_name.c_str(), 0);
+      if (rescode != MSK_RES_OK) {
+        throw std::runtime_error(fmt::format(
+            "MosekSolver(): kPrintToFile={} failed with response code {}",
+            common.print_file_name, fmt_streamed(rescode)));
+      }
+      *is_printing = true;
+    }
+    const int num_threads = common.max_threads.value_or(
+        Parallelism::Max().num_threads());
+    respelled->emplace("MSK_IPAR_NUM_THREADS", num_threads);
+  });
+  options->CopyToCallbacks(
+      [&](const std::string& key, double value) {
+        MSKrescodee rescode = MSK_putnadouparam(task_, key.c_str(), value);
+        ThrowForInvalidOption(rescode, key, value);
+      },
+      [&](const std::string& key, int value) {
+        MSKrescodee rescode = MSK_putnaintparam(task_, key.c_str(), value);
+        ThrowForInvalidOption(rescode, key, value);
+      },
+      [&](const std::string& key, const std::string& value) {
+        MSKrescodee rescode =
+            MSK_putnastrparam(task_, key.c_str(), value.c_str());
+        ThrowForInvalidOption(rescode, key, value);
+      });
 }
 
 MSKrescodee MosekSolverProgram::SetDualSolution(
@@ -1564,6 +1569,8 @@ MSKrescodee MosekSolverProgram::SetDualSolution(
         lorentz_cone_acc_indices,
     const std::unordered_map<Binding<RotatedLorentzConeConstraint>, MSKint64t>&
         rotated_lorentz_cone_acc_indices,
+    const std::unordered_map<Binding<LinearMatrixInequalityConstraint>,
+                             MSKint64t>& lmi_acc_indices,
     const std::unordered_map<Binding<ExponentialConeConstraint>, MSKint64t>&
         exp_cone_acc_indices,
     const std::unordered_map<Binding<PositiveSemidefiniteConstraint>,
@@ -1645,6 +1652,12 @@ MSKrescodee MosekSolverProgram::SetDualSolution(
     rescode = SetAffineConeConstraintDualSolution(
         prog.rotated_lorentz_cone_constraints(), task_, which_sol,
         rotated_lorentz_cone_acc_indices, result);
+    if (rescode != MSK_RES_OK) {
+      return rescode;
+    }
+    rescode = SetAffineConeConstraintDualSolution(
+        prog.linear_matrix_inequality_constraints(), task_, which_sol,
+        lmi_acc_indices, result);
     if (rescode != MSK_RES_OK) {
       return rescode;
     }

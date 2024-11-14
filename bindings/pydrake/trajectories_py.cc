@@ -10,6 +10,7 @@
 #include "drake/common/trajectories/composite_trajectory.h"
 #include "drake/common/trajectories/derivative_trajectory.h"
 #include "drake/common/trajectories/exponential_plus_piecewise_polynomial.h"
+#include "drake/common/trajectories/function_handle_trajectory.h"
 #include "drake/common/trajectories/path_parameterized_trajectory.h"
 #include "drake/common/trajectories/piecewise_polynomial.h"
 #include "drake/common/trajectories/piecewise_pose.h"
@@ -335,6 +336,22 @@ struct Impl {
     }
 
     {
+      using Class = FunctionHandleTrajectory<T>;
+      constexpr auto& cls_doc = doc.FunctionHandleTrajectory;
+      auto cls = DefineTemplateClassWithDefault<Class, Trajectory<T>>(
+          m, "FunctionHandleTrajectory", param, cls_doc.doc);
+      cls  // BR
+          .def(py::init<const std::function<MatrixX<T>(const T&)>&, int, int,
+                   double, double>(),
+              py::arg("func"), py::arg("rows"), py::arg("cols") = 1,
+              py::arg("start_time") = -std::numeric_limits<double>::infinity(),
+              py::arg("end_time") = std::numeric_limits<double>::infinity(),
+              cls_doc.ctor.doc)
+          .def("Clone", &Class::Clone, cls_doc.Clone.doc);
+      DefCopyAndDeepCopy(&cls);
+    }
+
+    {
       using Class = PathParameterizedTrajectory<T>;
       constexpr auto& cls_doc = doc.PathParameterizedTrajectory;
       auto cls = DefineTemplateClassWithDefault<Class, Trajectory<T>>(
@@ -582,7 +599,19 @@ struct Impl {
           }),
               py::arg("segments"), cls_doc.ctor.doc)
           .def("segment", &Class::segment, py::arg("segment_index"),
-              py_rvp::reference_internal, cls_doc.segment.doc);
+              py_rvp::reference_internal, cls_doc.segment.doc)
+          .def_static(
+              "AlignAndConcatenate",
+              [](std::vector<const Trajectory<T>*> py_segments) {
+                std::vector<copyable_unique_ptr<Trajectory<T>>> segments;
+                segments.reserve(py_segments.size());
+                for (const Trajectory<T>* py_segment : py_segments) {
+                  segments.emplace_back(
+                      py_segment ? py_segment->Clone() : nullptr);
+                }
+                return CompositeTrajectory<T>::AlignAndConcatenate(segments);
+              },
+              py::arg("segments"), cls_doc.AlignAndConcatenate.doc);
       DefCopyAndDeepCopy(&cls);
     }
 

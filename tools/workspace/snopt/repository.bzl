@@ -151,7 +151,7 @@ def _setup_local_archive(repo_ctx, snopt_path):
 
 def _impl(repo_ctx):
     updated_attrs = None
-    snopt_path = repo_ctx.os.environ.get("SNOPT_PATH", "")
+    snopt_path = repo_ctx.getenv("SNOPT_PATH", "")
 
     if len(snopt_path) == 0:
         # When SNOPT is enabled (e.g., with `--config snopt`), then SNOPT_PATH
@@ -200,7 +200,11 @@ _attrs = {
     ),
     "patch_cmds": attr.string_list(),
     "patch_tool": attr.string(default = "patch"),
-    "patch_args": attr.string_list(default = ["-p0"]),
+    "patch_args": attr.string_list(default = [
+        "-p0",
+        # Our wheel-builder logic requires backup files.
+        "-b",
+    ]),
     "build_file": attr.label(
         allow_single_file = True,
         default = "@drake//tools/workspace/snopt:package.BUILD.bazel",
@@ -212,7 +216,6 @@ _snopt_repository = repository_rule(
     attrs = _attrs,
     environ = [
         "BAZEL_SH",
-        "SNOPT_PATH",
     ],
     local = False,
     implementation = _impl,

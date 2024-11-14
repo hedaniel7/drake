@@ -60,7 +60,7 @@ class BallRpyJointTest : public ::testing::Test {
     // We are done adding modeling elements. Transfer tree to system and get
     // a Context.
     system_ = std::make_unique<internal::MultibodyTreeSystem<double>>(
-        std::move(model), true/* is_discrete */);
+        std::move(model), true /* is_discrete */);
     context_ = system_->CreateDefaultContext();
   }
 
@@ -117,13 +117,6 @@ TEST_F(BallRpyJointTest, GetJointLimits) {
 TEST_F(BallRpyJointTest, Damping) {
   EXPECT_EQ(joint_->default_damping(), kDamping);
   EXPECT_EQ(joint_->default_damping_vector(), Vector3d::Constant(kDamping));
-
-  // Ensure the deprecated versions are correct until removal.
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-  EXPECT_EQ(joint_->damping(), kDamping);
-  EXPECT_EQ(joint_->damping_vector(), Vector3d::Constant(kDamping));
-#pragma GCC diagnostic pop
 }
 
 // Context-dependent value access.
@@ -278,8 +271,7 @@ TEST_F(BallRpyJointTest, DefaultAngles) {
 
   // Setting the default angle out of the bounds of the position limits
   // should NOT throw an exception
-  EXPECT_NO_THROW(
-      mutable_joint_->set_default_angles(out_of_bounds_low_angles));
+  EXPECT_NO_THROW(mutable_joint_->set_default_angles(out_of_bounds_low_angles));
   EXPECT_NO_THROW(
       mutable_joint_->set_default_angles(out_of_bounds_high_angles));
 }

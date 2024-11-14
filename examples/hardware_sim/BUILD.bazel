@@ -20,6 +20,7 @@ filegroup(
         "//examples/pendulum:models",
         "@drake_models//:iiwa_description",
         "@drake_models//:manipulation_station",
+        "@drake_models//:veggies",
         "@drake_models//:wsg_50_description",
     ],
     visibility = ["//:__pkg__"],
@@ -29,19 +30,19 @@ drake_cc_library(
     name = "scenario",
     srcs = ["scenario.cc"],
     hdrs = ["scenario.h"],
-    interface_deps = [
+    deps = [
         "//common:name_value",
         "//lcm:drake_lcm_params",
         "//manipulation/kuka_iiwa:iiwa_driver",
         "//manipulation/schunk_wsg:schunk_wsg_driver",
         "//manipulation/util:zero_force_driver",
-        "//multibody/plant:multibody_plant_config",
         "//multibody/parsing:model_directives",
+        "//multibody/plant:multibody_plant_config",
         "//systems/analysis:simulator_config",
         "//systems/sensors:camera_config",
         "//visualization:visualization_config",
     ],
-    deps = [
+    implementation_deps = [
         "//common/yaml",
     ],
 )
@@ -49,7 +50,6 @@ drake_cc_library(
 drake_cc_binary(
     name = "hardware_sim_cc",
     srcs = ["hardware_sim.cc"],
-    visibility = ["//visibility:public"],
     deps = [
         ":scenario",
         "//common:add_text_logging_gflags",
@@ -110,7 +110,9 @@ drake_py_unittest(
 drake_py_binary(
     name = "hardware_sim_py",
     srcs = ["hardware_sim.py"],
-    visibility = ["//visibility:public"],
+    visibility = [
+        "//bindings/pydrake/visualization:__pkg__",
+    ],
     deps = [
         "//bindings/pydrake",
     ],

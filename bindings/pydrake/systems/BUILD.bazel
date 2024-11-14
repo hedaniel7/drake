@@ -88,6 +88,7 @@ drake_pybind_library(
     py_deps = [
         ":framework_py",
         ":module_py",
+        "//bindings/pydrake:trajectories_py",
     ],
 )
 
@@ -107,6 +108,7 @@ drake_pybind_library(
     py_deps = [
         ":framework_py",
         ":module_py",
+        "//bindings/pydrake:trajectories_py",
         "//bindings/pydrake/solvers",
     ],
 )
@@ -130,6 +132,21 @@ drake_pybind_library(
 )
 
 drake_pybind_library(
+    name = "estimators_py",
+    cc_deps = [
+        "//bindings/pydrake:documentation_pybind",
+        "//bindings/pydrake/common:wrap_pybind",
+    ],
+    cc_srcs = ["estimators_py.cc"],
+    package_info = PACKAGE_INFO,
+    py_deps = [
+        ":framework_py",
+        ":module_py",
+        ":primitives_py",
+    ],
+)
+
+drake_pybind_library(
     name = "rendering_py",
     cc_deps = [
         "//bindings/pydrake:documentation_pybind",
@@ -149,6 +166,7 @@ drake_pybind_library(
     cc_deps = [
         "//bindings/pydrake:documentation_pybind",
         "//bindings/pydrake/common:cpp_template_pybind",
+        "//bindings/pydrake/common:default_scalars_pybind",
         "//bindings/pydrake/common:deprecation_pybind",
         "//bindings/pydrake/common:eigen_pybind",
         "//bindings/pydrake/common:serialize_pybind",
@@ -163,6 +181,7 @@ drake_pybind_library(
         "sensors_py_image_io.cc",
         "sensors_py_lcm.cc",
         "sensors_py_rgbd.cc",
+        "sensors_py_rotary_encoders.cc",
     ],
     package_info = PACKAGE_INFO,
     py_deps = [
@@ -281,6 +300,7 @@ drake_py_library(
 PY_LIBRARIES_WITH_INSTALL = [
     ":analysis_py",
     ":controllers_py",
+    ":estimators_py",
     ":framework_py",
     ":lcm_py",
     ":primitives_py",
@@ -335,7 +355,7 @@ drake_py_binary(
     srcs = ["drawing_graphviz_example.py"],
     add_test_rule = 1,
     data = [
-        "//examples/multibody/cart_pole:cart_pole.sdf",
+        "//examples/multibody/cart_pole:models",
     ],
     test_rule_timeout = "moderate",
     deps = [
@@ -448,6 +468,15 @@ drake_py_unittest(
 )
 
 drake_py_unittest(
+    name = "estimators_test",
+    deps = [
+        ":estimators_py",
+        ":primitives_py",
+        "//bindings/pydrake/examples",
+    ],
+)
+
+drake_py_unittest(
     name = "perception_test",
     deps = [
         ":analysis_py",
@@ -473,6 +502,7 @@ drake_py_unittest(
     name = "planar_scenegraph_visualizer_test",
     data = [
         "//examples/multibody/cart_pole:models",
+        "//geometry:test_obj_files",
         "@drake_models//:iiwa_description",
     ],
     deps = [

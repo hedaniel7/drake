@@ -1394,6 +1394,41 @@ GTEST_TEST(HPolyhedronTest, UniformSampleTest3) {
   EXPECT_FALSE(CompareMatrices(A, B, kTol));
 }
 
+// Test that we can draw samples from not-full-dimensional HPolyhedra
+GTEST_TEST(HPolyhedronTest, UniformSampleTest4) {
+  Matrix<double, 2, 2> points;
+  // clang-format off
+  points << 0, 1,
+            0, 1;
+  // clang-format on
+  VPolytope V(points);
+  HPolyhedron H(V);
+  const double kTol = 1e-7;
+
+  // Verify that without passing in the basis of the affine hull,
+  // trying to draw a uniform sample just gives us previous_sample,
+  // since it is not full-dimensional.
+  Vector2d point(0.5, 0.5);
+
+  RandomGenerator generator(1234);
+  VectorXd point_A = H.UniformSample(&generator, point, 10);
+  EXPECT_TRUE(CompareMatrices(point, point_A, kTol));
+
+  // Compute the affine hull, and use this to draw samples.
+  AffineSubspace as(H);
+  MatrixXd basis = as.basis();
+  VectorXd point_B = H.UniformSample(&generator, point, 10, basis);
+  EXPECT_FALSE(CompareMatrices(point, point_B, kTol));
+
+  // Check that a subspace of incompatible shape throws. In this case,
+  // the subspace has four rows, which does not equal the ambient
+  // dimension of the HPolyhedron, which is two.
+  Matrix<double, 4, 1> bad_basis;
+  bad_basis << 0, 1, 2, 3;
+  EXPECT_THROW(H.UniformSample(&generator, point, 1, bad_basis),
+               std::exception);
+}
+
 GTEST_TEST(HPolyhedronTest, Serialize) {
   const HPolyhedron H = HPolyhedron::MakeL1Ball(3);
   const std::string yaml = yaml::SaveYamlString(H);
@@ -1720,6 +1755,40 @@ GTEST_TEST(HPolyhedronTest, MaximumVolumeInscribedAffineTransformationTest2) {
   EXPECT_GE(VPolytope(inbody).CalcVolume(),
             VPolytope(initial_polytope).CalcVolume());
 }
+
+GTEST_TEST(HPolyhedronTest, BoundednessCheckEmptyEdgeCases) {
+  // An empty HPolyhedron in ℝ^3, defined by x1 <= -1 and x1 >= 0. This checks
+  // the special case when there are fewer rows than columns.
+  MatrixXd A = MatrixXd::Zero(2, 3);
+  VectorXd b = VectorXd::Zero(2);
+  A(0, 0) = 1;
+  A(1, 0) = -1;
+  b(0) = -1;
+  HPolyhedron h(A, b);
+  EXPECT_TRUE(h.IsEmpty());
+  EXPECT_TRUE(h.IsBounded());
+
+  // An empty HPolyhedron in ℝ^1, defined by the constraint 0x <= -1 and
+  // 0x <= 0. This checks the special case where the kernel has positive
+  // dimension.
+  A = MatrixXd::Zero(2, 1);
+  h = HPolyhedron{A, b};
+  EXPECT_TRUE(h.IsEmpty());
+  EXPECT_TRUE(h.IsBounded());
+
+  // An empty HPolyhedron in ℝ^2, defined by the constraints x1 <= -1, x1 >= 0,
+  // and x2 >= 0. This checks the special case where Stiemke's theorem of
+  // alternatives would otherwise suggest it to be unbounded.
+  A = MatrixXd::Zero(3, 2);
+  A(0, 0) = 1;
+  A(1, 0) = -1;
+  A(2, 1) = -1;
+  b = Vector3d(-1, 0, 0);
+  h = HPolyhedron(A, b);
+  EXPECT_TRUE(h.IsEmpty());
+  EXPECT_TRUE(h.IsBounded());
+}
+
 }  // namespace optimization
 }  // namespace geometry
 }  // namespace drake

@@ -3,12 +3,12 @@
 #include "drake/bindings/pydrake/autodiff_types_pybind.h"
 #include "drake/bindings/pydrake/common/cpp_param_pybind.h"
 #include "drake/bindings/pydrake/common/cpp_template_pybind.h"
-#include "drake/bindings/pydrake/common/deprecation_pybind.h"
 #include "drake/bindings/pydrake/common/eigen_pybind.h"
 #include "drake/bindings/pydrake/common/wrap_function.h"
 #include "drake/bindings/pydrake/common/wrap_pybind.h"
 #include "drake/bindings/pydrake/documentation_pybind.h"
 #include "drake/bindings/pydrake/pydrake_pybind.h"
+#include "drake/bindings/pydrake/solvers/solvers_py.h"
 #include "drake/bindings/pydrake/symbolic_types_pybind.h"
 #include "drake/solvers/binding.h"
 #include "drake/solvers/constraint.h"
@@ -70,7 +70,11 @@ auto RegisterBinding(py::handle* scope) {
       .def("variables", &B::variables, cls_doc.variables.doc)
       .def(
           "ToLatex", &B::ToLatex, py::arg("precision") = 3, cls_doc.ToLatex.doc)
-      .def("__str__", &B::to_string, cls_doc.to_string.doc);
+      .def("__str__", &B::to_string, cls_doc.to_string.doc)
+      .def("__hash__", [](const B& self) { return std::hash<B>{}(self); })
+      .def(
+          "__eq__", [](const B& self, const B& other) { return self == other; },
+          py::is_operator());
   if (!std::is_same_v<C, EvaluatorBase>) {
     // This is required for implicit argument conversion. See below for
     // `EvaluatorBase`'s generic constructor for attempting downcasting.
@@ -136,8 +140,6 @@ void DefTesting(py::module m) {
       .def("AcceptBindingConstraint", [](const Binding<Constraint>&) {});
 }
 
-}  // namespace
-
 void BindEvaluatorsAndBindings(py::module m) {
   constexpr auto& doc = pydrake_doc.drake.solvers;
   {
@@ -157,7 +159,9 @@ void BindEvaluatorsAndBindings(py::module m) {
             py::arg("gradient_sparsity_pattern"),
             cls_doc.SetGradientSparsityPattern.doc)
         .def("gradient_sparsity_pattern", &Class::gradient_sparsity_pattern,
-            cls_doc.gradient_sparsity_pattern.doc);
+            cls_doc.gradient_sparsity_pattern.doc)
+        .def("is_thread_safe", &Class::is_thread_safe,
+            cls_doc.is_thread_safe.doc);
     auto bind_eval = [&cls, &cls_doc](auto dummy_x, auto dummy_y) {
       using T_x = decltype(dummy_x);
       using T_y = decltype(dummy_y);
@@ -348,6 +352,15 @@ void BindEvaluatorsAndBindings(py::module m) {
           "UpdateCoefficients",
           [](LinearEqualityConstraint& self,  // BR
               const Eigen::MatrixXd& Aeq, const Eigen::VectorXd& beq) {
+            self.UpdateCoefficients(Aeq, beq);
+          },
+          py::arg("Aeq"), py::arg("beq"),
+          doc.LinearEqualityConstraint.UpdateCoefficients.doc)
+      .def(
+          "UpdateCoefficients",
+          [](LinearEqualityConstraint& self,  // BR
+              const Eigen::SparseMatrix<double>& Aeq,
+              const Eigen::VectorXd& beq) {
             self.UpdateCoefficients(Aeq, beq);
           },
           py::arg("Aeq"), py::arg("beq"),
@@ -623,7 +636,12 @@ void BindEvaluatorsAndBindings(py::module m) {
             self.UpdateCoefficients(new_a, new_b);
           },
           py::arg("new_a"), py::arg("new_b") = 0,
-          doc.LinearCost.UpdateCoefficients.doc);
+          doc.LinearCost.UpdateCoefficients.doc)
+      .def("update_coefficient_entry", &LinearCost::update_coefficient_entry,
+          py::arg("i"), py::arg("val"),
+          doc.LinearCost.update_coefficient_entry.doc)
+      .def("update_constant_term", &LinearCost::update_constant_term,
+          py::arg("new_b"), doc.LinearCost.update_constant_term.doc);
 
   py::class_<QuadraticCost, Cost, std::shared_ptr<QuadraticCost>>(
       m, "QuadraticCost", doc.QuadraticCost.doc)
@@ -647,7 +665,16 @@ void BindEvaluatorsAndBindings(py::module m) {
           },
           py::arg("new_Q"), py::arg("new_b"), py::arg("new_c") = 0,
           py::arg("is_convex") = py::none(),
-          doc.QuadraticCost.UpdateCoefficients.doc);
+          doc.QuadraticCost.UpdateCoefficients.doc)
+      .def("UpdateHessianEntry", &QuadraticCost::UpdateHessianEntry,
+          py::arg("i"), py::arg("j"), py::arg("val"),
+          py::arg("is_hessian_psd") = py::none(),
+          doc.QuadraticCost.UpdateHessianEntry.doc)
+      .def("update_linear_coefficient_entry",
+          &QuadraticCost::update_linear_coefficient_entry, py::arg("i"),
+          py::arg("val"), doc.QuadraticCost.update_linear_coefficient_entry.doc)
+      .def("update_constant_term", &QuadraticCost::update_constant_term,
+          py::arg("new_c"), doc.QuadraticCost.update_constant_term.doc);
 
   py::class_<L1NormCost, Cost, std::shared_ptr<L1NormCost>>(
       m, "L1NormCost", doc.L1NormCost.doc)
@@ -698,12 +725,6 @@ void BindEvaluatorsAndBindings(py::module m) {
             },
             py::arg("new_A"), py::arg("new_b") = 0,
             doc.L2NormCost.UpdateCoefficients.doc_sparse_A);
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-    cls.def("A",
-        WrapDeprecated(doc.L2NormCost.A.doc_deprecated, &L2NormCost::A),
-        doc.L2NormCost.A.doc_deprecated);
-#pragma GCC diagnostic pop
   }
 
   py::class_<LInfNormCost, Cost, std::shared_ptr<LInfNormCost>>(
@@ -772,6 +793,8 @@ void BindEvaluatorsAndBindings(py::module m) {
 
   RegisterBinding<VisualizationCallback>(&m);
 }  // NOLINT(readability/fn_size)
+
+}  // namespace
 
 namespace internal {
 void DefineSolversEvaluators(py::module m) {

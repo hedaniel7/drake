@@ -29,7 +29,7 @@ namespace multibody {
 template <typename T>
 class RevoluteJoint final : public Joint<T> {
  public:
-  DRAKE_NO_COPY_NO_MOVE_NO_ASSIGN(RevoluteJoint)
+  DRAKE_NO_COPY_NO_MOVE_NO_ASSIGN(RevoluteJoint);
 
   template <typename Scalar>
   using Context = systems::Context<Scalar>;
@@ -61,13 +61,12 @@ class RevoluteJoint final : public Joint<T> {
   ///   opposing motion, with ω the angular rate for `this` joint (see
   ///   get_angular_rate()).
   /// @throws std::exception if damping is negative.
-  RevoluteJoint(const std::string& name,
-                const Frame<T>& frame_on_parent, const Frame<T>& frame_on_child,
-                const Vector3<double>& axis,
-                double damping = 0) :
-      RevoluteJoint<T>(name, frame_on_parent, frame_on_child, axis,
-                       -std::numeric_limits<double>::infinity(),
-                       std::numeric_limits<double>::infinity(), damping) {}
+  RevoluteJoint(const std::string& name, const Frame<T>& frame_on_parent,
+                const Frame<T>& frame_on_child, const Vector3<double>& axis,
+                double damping = 0)
+      : RevoluteJoint<T>(name, frame_on_parent, frame_on_child, axis,
+                         -std::numeric_limits<double>::infinity(),
+                         std::numeric_limits<double>::infinity(), damping) {}
 
   /// Constructor to create a revolute joint between two bodies so that
   /// frame F attached to the parent body P and frame M attached to the child
@@ -105,21 +104,18 @@ class RevoluteJoint final : public Joint<T> {
                 double pos_lower_limit, double pos_upper_limit,
                 double damping = 0);
 
+  ~RevoluteJoint() override;
+
   const std::string& type_name() const override;
 
   /// Returns the axis of revolution of `this` joint as a unit vector.
   /// Since the measures of this axis in either frame F or M are the same (see
   /// this class's documentation for frame definitions) then,
   /// `axis = axis_F = axis_M`.
-  const Vector3<double>& revolute_axis() const {
-    return axis_;
-  }
+  const Vector3<double>& revolute_axis() const { return axis_; }
 
   /// Returns `this` joint's default damping constant in N⋅m⋅s.
   double default_damping() const { return this->default_damping_vector()[0]; }
-
-  DRAKE_DEPRECATED("2024-06-01", "Use default_damping() instead.")
-  double damping() const { return this->default_damping_vector()[0]; }
 
   /// Sets the default value of viscous damping for this joint, in N⋅m⋅s.
   /// @throws std::exception if damping is negative.
@@ -178,9 +174,8 @@ class RevoluteJoint final : public Joint<T> {
   /// @param[in] angle
   ///   The desired angle in radians to be stored in `context`.
   /// @returns a constant reference to `this` joint.
-  const RevoluteJoint<T>& set_angle(
-      Context<T>* context, const T& angle) const {
-    get_mobilizer()->set_angle(context, angle);
+  const RevoluteJoint<T>& set_angle(Context<T>* context, const T& angle) const {
+    get_mobilizer()->SetAngle(context, angle);
     return *this;
   }
 
@@ -208,9 +203,9 @@ class RevoluteJoint final : public Joint<T> {
   ///   The desired rate of change of `this` joints's angle in radians per
   ///   second.
   /// @returns a constant reference to `this` joint.
-  const RevoluteJoint<T>& set_angular_rate(
-      Context<T>* context, const T& angle) const {
-    get_mobilizer()->set_angular_rate(context, angle);
+  const RevoluteJoint<T>& set_angular_rate(Context<T>* context,
+                                           const T& angle) const {
+    get_mobilizer()->SetAngularRate(context, angle);
     return *this;
   }
 
@@ -254,10 +249,8 @@ class RevoluteJoint final : public Joint<T> {
   /// acceleration according to the right-hand-rule around the joint's axis.
   ///
   /// @note A torque is the moment of a set of forces whose resultant is zero.
-  void AddInTorque(
-      const systems::Context<T>& context,
-      const T& torque,
-      MultibodyForces<T>* forces) const {
+  void AddInTorque(const systems::Context<T>& context, const T& torque,
+                   MultibodyForces<T>* forces) const {
     DRAKE_DEMAND(forces != nullptr);
     DRAKE_DEMAND(forces->CheckHasRightSizeForModel(this->get_parent_tree()));
     this->AddInOneForce(context, 0, torque, forces);
@@ -276,11 +269,9 @@ class RevoluteJoint final : public Joint<T> {
   /// joint's axis. That is, a positive torque causes a positive rotational
   /// acceleration (of the child body frame) according to the right-hand-rule
   /// around the joint's axis.
-  void DoAddInOneForce(
-      const systems::Context<T>&,
-      int joint_dof,
-      const T& joint_tau,
-      MultibodyForces<T>* forces) const override {
+  void DoAddInOneForce(const systems::Context<T>&, int joint_dof,
+                       const T& joint_tau,
+                       MultibodyForces<T>* forces) const override {
     // Right now we assume all the forces in joint_tau go into a single
     // mobilizer.
     DRAKE_DEMAND(joint_dof == 0);
@@ -307,17 +298,13 @@ class RevoluteJoint final : public Joint<T> {
     return get_mobilizer()->velocity_start_in_v();
   }
 
-  int do_get_num_velocities() const override {
-    return 1;
-  }
+  int do_get_num_velocities() const override { return 1; }
 
   int do_get_position_start() const override {
     return get_mobilizer()->position_start_in_q();
   }
 
-  int do_get_num_positions() const override {
-    return 1;
-  }
+  int do_get_num_positions() const override { return 1; }
 
   std::string do_get_position_suffix(int index) const override {
     return get_mobilizer()->position_suffix(index);
@@ -343,8 +330,8 @@ class RevoluteJoint final : public Joint<T> {
   }
 
   // Joint<T> overrides:
-  std::unique_ptr<typename Joint<T>::BluePrint>
-  MakeImplementationBlueprint() const override;
+  std::unique_ptr<typename Joint<T>::BluePrint> MakeImplementationBlueprint(
+      const internal::SpanningForest::Mobod& mobod) const override;
 
   std::unique_ptr<Joint<double>> DoCloneToScalar(
       const internal::MultibodyTree<double>& tree_clone) const override;
@@ -358,7 +345,8 @@ class RevoluteJoint final : public Joint<T> {
   // Make RevoluteJoint templated on every other scalar type a friend of
   // RevoluteJoint<T> so that CloneToScalar<ToAnyOtherScalar>() can access
   // private members of RevoluteJoint<T>.
-  template <typename> friend class RevoluteJoint;
+  template <typename>
+  friend class RevoluteJoint;
 
   // Friend class to facilitate testing.
   friend class JointTester;
@@ -394,10 +382,11 @@ class RevoluteJoint final : public Joint<T> {
   Vector3<double> axis_;
 };
 
-template <typename T> const char RevoluteJoint<T>::kTypeName[] = "revolute";
+template <typename T>
+const char RevoluteJoint<T>::kTypeName[] = "revolute";
 
 }  // namespace multibody
 }  // namespace drake
 
 DRAKE_DECLARE_CLASS_TEMPLATE_INSTANTIATIONS_ON_DEFAULT_SCALARS(
-    class ::drake::multibody::RevoluteJoint)
+    class ::drake::multibody::RevoluteJoint);

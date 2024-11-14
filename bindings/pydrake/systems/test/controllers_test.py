@@ -1,3 +1,4 @@
+import gc
 import math
 import unittest
 
@@ -151,7 +152,8 @@ class TestControllers(unittest.TestCase):
 
         controller = InverseDynamics(
             plant=plant,
-            mode=InverseDynamics.InverseDynamicsMode.kGravityCompensation)
+            mode=InverseDynamics.InverseDynamicsMode.kGravityCompensation,
+            plant_context=plant.CreateDefaultContext())
         self.assertIsInstance(controller.get_input_port_estimated_state(),
                               InputPort)
         self.assertIsInstance(controller.get_output_port_generalized_force(),
@@ -183,11 +185,13 @@ class TestControllers(unittest.TestCase):
         ki = np.array([0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7])
         kd = np.array([.5, 1., 1.5, 2., 2.5, 3., 3.5])
 
-        controller = InverseDynamicsController(robot=plant,
-                                               kp=kp,
-                                               ki=ki,
-                                               kd=kd,
-                                               has_reference_acceleration=True)
+        controller = InverseDynamicsController(
+                robot=plant,
+                kp=kp,
+                ki=ki,
+                kd=kd,
+                has_reference_acceleration=True,
+                plant_context=plant.CreateDefaultContext())
         context = controller.CreateDefaultContext()
         output = controller.AllocateOutput()
 
@@ -273,6 +277,7 @@ class TestControllers(unittest.TestCase):
             return diagram
 
         diagram = make_diagram()
+        gc.collect()
         # N.B. Without the workaround for #14355, we get a segfault when
         # creating the context.
         context = diagram.CreateDefaultContext()

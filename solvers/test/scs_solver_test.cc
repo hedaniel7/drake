@@ -305,6 +305,11 @@ GTEST_TEST(TestSOCP, TestSocpDuplicatedVariable2) {
   TestSocpDuplicatedVariable2(solver, std::nullopt, 1E-6);
 }
 
+GTEST_TEST(TestSOCP, TestSocpDuplicatedVariable3) {
+  ScsSolver solver;
+  TestSocpDuplicatedVariable3(solver, std::nullopt, 1E-5);
+}
+
 GTEST_TEST(TestL2NormCost, ShortestDistanceToThreePoints) {
   ScsSolver solver;
   ShortestDistanceToThreePoints tester{};
@@ -343,6 +348,13 @@ GTEST_TEST(QPtest, TestUnitBallExample) {
   }
 }
 
+GTEST_TEST(QPtest, TestQuadraticCostVariableOrder) {
+  ScsSolver solver;
+  if (solver.available()) {
+    TestQuadraticCostVariableOrder(solver);
+  }
+}
+
 GTEST_TEST(TestDuplicatedVariableQuadraticProgram, Test) {
   ScsSolver solver;
   if (solver.available()) {
@@ -374,7 +386,7 @@ GTEST_TEST(TestSemidefiniteProgram, OuterEllipsoid) {
 GTEST_TEST(TestSemidefiniteProgram, EigenvalueProblem) {
   ScsSolver scs_solver;
   if (scs_solver.available()) {
-    SolveEigenvalueProblem(scs_solver, {}, kTol);
+    SolveEigenvalueProblem(scs_solver, {}, kTol, /*check_dual*/ false);
   }
 }
 
@@ -396,6 +408,49 @@ GTEST_TEST(TestSemidefiniteProgram, SolveSDPwithOverlappingVariables) {
   ScsSolver scs_solver;
   if (scs_solver.available()) {
     SolveSDPwithOverlappingVariables(scs_solver, kTol);
+  }
+}
+
+GTEST_TEST(TestSemidefiniteProgram, TestTrivial1x1SDP) {
+  ScsSolver scs_solver;
+  if (scs_solver.available()) {
+    TestTrivial1x1SDP(scs_solver, 1E-5, /*check_dual=*/false);
+  }
+}
+
+GTEST_TEST(TestSemidefiniteProgram, TestTrivial2x2SDP) {
+  ScsSolver scs_solver;
+  if (scs_solver.available()) {
+    TestTrivial2x2SDP(scs_solver, 1E-5, /*check_dual=*/false);
+  }
+}
+
+GTEST_TEST(TestSemidefiniteProgram, Test1x1with3x3SDP) {
+  ScsSolver scs_solver;
+  if (scs_solver.available()) {
+    Test1x1with3x3SDP(scs_solver, 1E-5, /*check_dual=*/false);
+  }
+}
+
+GTEST_TEST(TestSemidefiniteProgram, Test2x2with3x3SDP) {
+  ScsSolver scs_solver;
+  if (scs_solver.available()) {
+    Test2x2with3x3SDP(scs_solver, 1E-2, /*check_dual=*/false,
+                      /*dual_tol=*/1E-5);
+  }
+}
+
+GTEST_TEST(TestSemidefiniteProgram, TestTrivial1x1LMI) {
+  ScsSolver solver;
+  if (solver.available()) {
+    TestTrivial1x1LMI(solver, 1E-5, /*check_dual=*/false, /*dual_tol=*/1E-7);
+  }
+}
+
+GTEST_TEST(TestSemidefiniteProgram, Test2X2LMI) {
+  ScsSolver solver;
+  if (solver.available()) {
+    Test2x2LMI(solver, 1E-7, /*check_dual=*/false, /*dual_tol=*/1E-7);
   }
 }
 

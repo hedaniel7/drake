@@ -1,7 +1,10 @@
+#include "pybind11/eval.h"
+
 #include "drake/bindings/pydrake/common/cpp_template_pybind.h"
 #include "drake/bindings/pydrake/common/default_scalars_pybind.h"
 #include "drake/bindings/pydrake/common/deprecation_pybind.h"
 #include "drake/bindings/pydrake/documentation_pybind.h"
+#include "drake/bindings/pydrake/multibody/tree_py.h"
 #include "drake/bindings/pydrake/pydrake_pybind.h"
 #include "drake/multibody/tree/geometry_spatial_inertia.h"
 #include "drake/multibody/tree/rotational_inertia.h"
@@ -95,6 +98,7 @@ void DoScalarDependentDefinitions(py::module m, T) {
         .def("SetToNaN", &Class::SetToNaN, cls_doc.SetToNaN.doc)
         .def("SetZero", &Class::SetZero, cls_doc.SetZero.doc)
         .def("IsNaN", &Class::IsNaN, cls_doc.IsNaN.doc)
+        .def("IsZero", &Class::IsZero, cls_doc.IsZero.doc)
         // TODO(jwnimmer-tri) Need to bind cast<>.
         .def("CalcPrincipalMomentsOfInertia",
             &Class::CalcPrincipalMomentsOfInertia,
@@ -257,10 +261,6 @@ void DoScalarDependentDefinitions(py::module m, T) {
             cls_doc.HollowSphereWithMass.doc)
         .def_static("Zero", &Class::Zero, cls_doc.Zero.doc)
         .def_static("NaN", &Class::NaN, cls_doc.NaN.doc)
-        // TODO(jwnimmer-tri) Remove this on 2024-10-01.
-        .def(py::init(WrapDeprecated(cls_doc.ctor.doc_deprecated,
-                 []() { return std::make_unique<Class>(Class::NaN()); })),
-            cls_doc.ctor.doc_deprecated)
         .def(py::init<const T&, const Eigen::Ref<const Vector3<T>>&,
                  const UnitInertia<T>&, const bool>(),
             py::arg("mass"), py::arg("p_PScm_E"), py::arg("G_SP_E"),
@@ -281,6 +281,7 @@ void DoScalarDependentDefinitions(py::module m, T) {
         .def("CopyToFullMatrix6", &Class::CopyToFullMatrix6,
             cls_doc.CopyToFullMatrix6.doc)
         .def("IsNaN", &Class::IsNaN, cls_doc.IsNaN.doc)
+        .def("IsZero", &Class::IsZero, cls_doc.IsZero.doc)
         .def("SetNaN", &Class::SetNaN, cls_doc.SetNaN.doc)
         .def("ReExpress", &Class::ReExpress, py::arg("R_AE"),
             cls_doc.ReExpress.doc)
@@ -288,6 +289,15 @@ void DoScalarDependentDefinitions(py::module m, T) {
         .def(py::self += py::self)
         .def(py::self * SpatialAcceleration<T>())
         .def(py::self * SpatialVelocity<T>())
+        .def("__repr__",
+            [](const Class& self) -> py::object {
+              if constexpr (std::is_same_v<T, double>) {
+                if (self.IsZero()) {
+                  return py::str("SpatialInertia.Zero()");
+                }
+              }
+              return py::eval("object.__repr__")(self);
+            })
         .def(py::pickle(
             [](const Class& self) {
               return py::make_tuple(

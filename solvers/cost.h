@@ -10,7 +10,6 @@
 
 #include <Eigen/SparseCore>
 
-#include "drake/common/drake_deprecated.h"
 #include "drake/solvers/decision_variable.h"
 #include "drake/solvers/evaluator_base.h"
 #include "drake/solvers/sparse_and_dense_matrix.h"
@@ -25,7 +24,7 @@ namespace solvers {
  */
 class Cost : public EvaluatorBase {
  public:
-  DRAKE_NO_COPY_NO_MOVE_NO_ASSIGN(Cost)
+  DRAKE_NO_COPY_NO_MOVE_NO_ASSIGN(Cost);
 
  protected:
   /**
@@ -44,7 +43,7 @@ class Cost : public EvaluatorBase {
  */
 class LinearCost : public Cost {
  public:
-  DRAKE_NO_COPY_NO_MOVE_NO_ASSIGN(LinearCost)
+  DRAKE_NO_COPY_NO_MOVE_NO_ASSIGN(LinearCost);
 
   /**
    * Construct a linear cost of the form @f[ a'x + b @f].
@@ -53,9 +52,11 @@ class LinearCost : public Cost {
    */
   // NOLINTNEXTLINE(runtime/explicit) This conversion is desirable.
   LinearCost(const Eigen::Ref<const Eigen::VectorXd>& a, double b = 0.)
-      : Cost(a.rows()), a_(a), b_(b) {}
+      : Cost(a.rows()), a_(a), b_(b) {
+    set_is_thread_safe(true);
+  }
 
-  ~LinearCost() override {}
+  ~LinearCost() override;
 
   Eigen::SparseMatrix<double> GetSparseMatrix() const {
     // TODO(eric.cousineau): Consider storing or caching sparse matrix, such
@@ -74,14 +75,20 @@ class LinearCost : public Cost {
    * @param new_b (optional) New constant term.
    */
   void UpdateCoefficients(const Eigen::Ref<const Eigen::VectorXd>& new_a,
-                          double new_b = 0.) {
-    if (new_a.rows() != a_.rows()) {
-      throw std::runtime_error("Can't change the number of decision variables");
-    }
+                          double new_b = 0.);
 
-    a_ = new_a;
-    b_ = new_b;
-  }
+  /**
+   * Updates one entry in the coefficient of the cost.
+   * a[i] = val.
+   * @param i The index of the coefficient to be updated.
+   * @param val The value of that updated entry.
+   */
+  void update_coefficient_entry(int i, double val);
+
+  /**
+   * Updates the constant term in the cost to `new_b`.
+   */
+  void update_constant_term(double new_b);
 
  protected:
   void DoEval(const Eigen::Ref<const Eigen::VectorXd>& x,
@@ -113,7 +120,7 @@ class LinearCost : public Cost {
  */
 class QuadraticCost : public Cost {
  public:
-  DRAKE_NO_COPY_NO_MOVE_NO_ASSIGN(QuadraticCost)
+  DRAKE_NO_COPY_NO_MOVE_NO_ASSIGN(QuadraticCost);
 
   /**
    * Constructs a cost of the form @f[ .5 x'Qx + b'x + c @f].
@@ -132,8 +139,9 @@ class QuadraticCost : public Cost {
                 const Eigen::MatrixBase<Derivedb>& b, double c = 0.,
                 std::optional<bool> is_hessian_psd = std::nullopt)
       : Cost(Q.rows()), Q_((Q + Q.transpose()) / 2), b_(b), c_(c) {
-    DRAKE_ASSERT(Q_.rows() == Q_.cols());
-    DRAKE_ASSERT(Q_.cols() == b_.rows());
+    set_is_thread_safe(true);
+    DRAKE_THROW_UNLESS(Q_.rows() == Q_.cols());
+    DRAKE_THROW_UNLESS(Q_.cols() == b_.rows());
     if (is_hessian_psd.has_value()) {
       is_convex_ = is_hessian_psd.value();
     } else {
@@ -141,7 +149,7 @@ class QuadraticCost : public Cost {
     }
   }
 
-  ~QuadraticCost() override {}
+  ~QuadraticCost() override;
 
   /// Returns the symmetric matrix Q, as the Hessian of the cost.
   const Eigen::MatrixXd& Q() const { return Q_; }
@@ -192,6 +200,31 @@ class QuadraticCost : public Cost {
       is_convex_ = CheckHessianPsd();
     }
   }
+
+  /**
+   * Updates both Q(i, j) and Q(j, i) to val
+   * @param is_hessian_psd If this is `nullopt`, the new Hessian is
+   * checked (possibly expensively) for PSD-ness.  If this is
+   * set true/false, the cost's convexity is updated to that
+   * value without checking (it is the user's responsibility to make sure the
+   * flag is set correctly).
+   * @note If you have multiple entries in the Hessian matrix to update, and you
+   * don't specify is_hessian_psd, then it is much faster to call
+   * UpdateCoefficients(new_A, new_b) where new_A contains all the updated
+   * entries.
+   */
+  void UpdateHessianEntry(int i, int j, double val,
+                          std::optional<bool> is_hessian_psd = std::nullopt);
+
+  /**
+   * Updates b(i)=val.
+   */
+  void update_linear_coefficient_entry(int i, double val);
+
+  /**
+   * Updates the constant term to `new_c`.
+   */
+  void update_constant_term(double new_c);
 
  private:
   template <typename DerivedX, typename U>
@@ -245,17 +278,18 @@ std::shared_ptr<QuadraticCost> Make2NormSquaredCost(
  */
 class L1NormCost : public Cost {
  public:
-  DRAKE_NO_COPY_NO_MOVE_NO_ASSIGN(L1NormCost)
+  DRAKE_NO_COPY_NO_MOVE_NO_ASSIGN(L1NormCost);
 
   /**
    * Construct a cost of the form ‖Ax + b‖₁.
    * @param A Linear term.
    * @param b Constant term.
+   * @throws std::exception if the size of A and b don't match.
    */
   L1NormCost(const Eigen::Ref<const Eigen::MatrixXd>& A,
              const Eigen::Ref<const Eigen::VectorXd>& b);
 
-  ~L1NormCost() override {}
+  ~L1NormCost() override;
 
   const Eigen::MatrixXd& A() const { return A_; }
 
@@ -297,7 +331,7 @@ class L1NormCost : public Cost {
  */
 class L2NormCost : public Cost {
  public:
-  DRAKE_NO_COPY_NO_MOVE_NO_ASSIGN(L2NormCost)
+  DRAKE_NO_COPY_NO_MOVE_NO_ASSIGN(L2NormCost);
 
   // TODO(russt): Add an option to select an implementation that smooths the
   // gradient discontinuity at the origin.
@@ -305,6 +339,7 @@ class L2NormCost : public Cost {
    * Construct a cost of the form ‖Ax + b‖₂.
    * @param A Linear term.
    * @param b Constant term.
+   * @throws std::exception if the size of A and b don't match.
    * @pydrake_mkdoc_identifier{dense_A}
    */
   L2NormCost(const Eigen::Ref<const Eigen::MatrixXd>& A,
@@ -317,10 +352,7 @@ class L2NormCost : public Cost {
   L2NormCost(const Eigen::SparseMatrix<double>& A,
              const Eigen::Ref<const Eigen::VectorXd>& b);
 
-  ~L2NormCost() override {}
-
-  DRAKE_DEPRECATED("2024-08-01", "Use A_dense function instead.")
-  const Eigen::MatrixXd& A() const { return GetDenseA(); }
+  ~L2NormCost() override;
 
   const Eigen::SparseMatrix<double>& get_sparse_A() const {
     return A_.get_as_sparse();
@@ -375,17 +407,18 @@ class L2NormCost : public Cost {
  */
 class LInfNormCost : public Cost {
  public:
-  DRAKE_NO_COPY_NO_MOVE_NO_ASSIGN(LInfNormCost)
+  DRAKE_NO_COPY_NO_MOVE_NO_ASSIGN(LInfNormCost);
 
   /**
    * Construct a cost of the form ‖Ax + b‖∞.
    * @param A Linear term.
    * @param b Constant term.
+   * @throws std::exception if the size of A and b don't match.
    */
   LInfNormCost(const Eigen::Ref<const Eigen::MatrixXd>& A,
                const Eigen::Ref<const Eigen::VectorXd>& b);
 
-  ~LInfNormCost() override {}
+  ~LInfNormCost() override;
 
   const Eigen::MatrixXd& A() const { return A_; }
 
@@ -434,7 +467,7 @@ class LInfNormCost : public Cost {
  */
 class PerspectiveQuadraticCost : public Cost {
  public:
-  DRAKE_NO_COPY_NO_MOVE_NO_ASSIGN(PerspectiveQuadraticCost)
+  DRAKE_NO_COPY_NO_MOVE_NO_ASSIGN(PerspectiveQuadraticCost);
 
   /**
    * Construct a cost of the form (z_1^2 + z_2^2 + ... + z_{n-1}^2) / z_0 where
@@ -445,7 +478,7 @@ class PerspectiveQuadraticCost : public Cost {
   PerspectiveQuadraticCost(const Eigen::Ref<const Eigen::MatrixXd>& A,
                            const Eigen::Ref<const Eigen::VectorXd>& b);
 
-  ~PerspectiveQuadraticCost() override {}
+  ~PerspectiveQuadraticCost() override;
 
   const Eigen::MatrixXd& A() const { return A_; }
 
@@ -496,14 +529,15 @@ class PerspectiveQuadraticCost : public Cost {
 template <typename EvaluatorType = EvaluatorBase>
 class EvaluatorCost : public Cost {
  public:
-  DRAKE_NO_COPY_NO_MOVE_NO_ASSIGN(EvaluatorCost)
+  DRAKE_NO_COPY_NO_MOVE_NO_ASSIGN(EvaluatorCost);
 
   explicit EvaluatorCost(const std::shared_ptr<EvaluatorType>& evaluator)
       : Cost(evaluator->num_vars()),
         evaluator_{evaluator},
         a_{std::nullopt},
         b_{0} {
-    DRAKE_DEMAND(evaluator->num_outputs() == 1);
+    set_is_thread_safe(evaluator->is_thread_safe());
+    DRAKE_THROW_UNLESS(evaluator->num_outputs() == 1);
   }
 
   /**
@@ -513,7 +547,8 @@ class EvaluatorCost : public Cost {
   EvaluatorCost(const std::shared_ptr<EvaluatorType>& evaluator,
                 const Eigen::Ref<const Eigen::VectorXd>& a, double b = 0)
       : Cost(evaluator->num_vars()), evaluator_(evaluator), a_{a}, b_{b} {
-    DRAKE_DEMAND(evaluator->num_outputs() == a_->rows());
+    set_is_thread_safe(true);
+    DRAKE_THROW_UNLESS(evaluator->num_outputs() == a_->rows());
   }
 
  protected:
@@ -565,7 +600,7 @@ class EvaluatorCost : public Cost {
  */
 class PolynomialCost : public EvaluatorCost<PolynomialEvaluator> {
  public:
-  DRAKE_NO_COPY_NO_MOVE_NO_ASSIGN(PolynomialCost)
+  DRAKE_NO_COPY_NO_MOVE_NO_ASSIGN(PolynomialCost);
 
   /**
    * Constructs a polynomial cost
@@ -594,7 +629,7 @@ class PolynomialCost : public EvaluatorCost<PolynomialEvaluator> {
  */
 class ExpressionCost : public Cost {
  public:
-  DRAKE_NO_COPY_NO_MOVE_NO_ASSIGN(ExpressionCost)
+  DRAKE_NO_COPY_NO_MOVE_NO_ASSIGN(ExpressionCost);
 
   explicit ExpressionCost(const symbolic::Expression& e);
 

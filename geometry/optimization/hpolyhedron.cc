@@ -17,6 +17,7 @@
 #include <libqhullcpp/QhullFacet.h>
 #include <libqhullcpp/QhullFacetList.h>
 
+#include "drake/common/overloaded.h"
 #include "drake/common/ssize.h"
 #include "drake/geometry/optimization/affine_subspace.h"
 #include "drake/geometry/optimization/vpolytope.h"
@@ -131,17 +132,42 @@ HPolyhedron::HPolyhedron(const QueryObject<double>& query_object,
                          GeometryId geometry_id,
                          std::optional<FrameId> reference_frame)
     : ConvexSet(3, false) {
-  std::pair<MatrixXd, VectorXd> Ab_G;
-  query_object.inspector().GetShape(geometry_id).Reify(this, &Ab_G);
-
+  const Shape& shape = query_object.inspector().GetShape(geometry_id);
+  MatrixXd A_G;
+  VectorXd b_G;
+  std::tie(A_G, b_G) = shape.Visit<std::pair<MatrixXd, VectorXd>>(overloaded{
+      // We only handle certain shape types.
+      // TODO(russt): Support [](const Convex& convex); it is already supported
+      // by VPolytope.
+      [](const Box& box) {
+        Eigen::Matrix<double, 6, 3> A;
+        A << Eigen::Matrix3d::Identity(), -Eigen::Matrix3d::Identity();
+        Vector6d b;
+        // clang-format off
+        b << box.width()/2.0, box.depth()/2.0, box.height()/2.0,
+             box.width()/2.0, box.depth()/2.0, box.height()/2.0;
+        // clang-format on
+        return std::make_pair(A, b);
+      },
+      [](const HalfSpace&) {
+        // z <= 0.0.
+        Eigen::RowVector3d A{0.0, 0.0, 1.0};
+        Vector1d b{0.0};
+        return std::make_pair(A, b);
+      },
+      [&geometry_id](const auto& unsupported) -> std::pair<MatrixXd, VectorXd> {
+        throw std::logic_error(fmt::format(
+            "{} (geometry_id={}) cannot be converted to a HPolyhedron",
+            unsupported, geometry_id));
+      }});
   const RigidTransformd X_WE =
       reference_frame ? query_object.GetPoseInWorld(*reference_frame)
                       : RigidTransformd::Identity();
   const RigidTransformd& X_WG = query_object.GetPoseInWorld(geometry_id);
   const RigidTransformd X_GE = X_WG.InvertAndCompose(X_WE);
   // A_G*(p_GE + R_GE*p_EE_var) ≤ b_G
-  A_ = Ab_G.first * X_GE.rotation().matrix();
-  b_ = Ab_G.second - Ab_G.first * X_GE.translation();
+  A_ = A_G * X_GE.rotation().matrix();
+  b_ = b_G - A_G * X_GE.translation();
 }
 
 HPolyhedron::HPolyhedron(const VPolytope& vpoly, double tol)
@@ -375,7 +401,7 @@ HPolyhedron::HPolyhedron(const MathematicalProgram& prog)
   std::vector<int> rows_to_keep;
   rows_to_keep.reserve(A_sparse.rows());
   for (int i = 0; i < ssize(b); ++i) {
-    if (abs(b[i]) < kInf) {
+    if (std::abs(b[i]) < kInf) {
       rows_to_keep.push_back(i);
     }
   }
@@ -515,18 +541,53 @@ HPolyhedron HPolyhedron::Intersection(const HPolyhedron& other,
 VectorXd HPolyhedron::UniformSample(
     RandomGenerator* generator,
     const Eigen::Ref<const Eigen::VectorXd>& previous_sample,
-    const int mixing_steps) const {
+    const int mixing_steps,
+    const std::optional<Eigen::Ref<const Eigen::MatrixXd>>& subspace,
+    double tol) const {
   DRAKE_THROW_UNLESS(mixing_steps >= 1);
+  if (subspace.has_value()) {
+    DRAKE_THROW_UNLESS(subspace->rows() == ambient_dimension());
+  }
 
   std::normal_distribution<double> gaussian;
-  VectorXd direction(ambient_dimension());
   VectorXd current_sample = previous_sample;
+
+  const int sampling_dim =
+      subspace.has_value() ? subspace->cols() : previous_sample.rows();
+  VectorXd gaussian_sample(sampling_dim);
+  VectorXd direction(ambient_dimension());
+
+  // If a row of the A matrix is orthogonal to all columns of the basis, then
+  // the constraint from that row is enforced by the sample being in the column
+  // space of the basis. Thus, we skip that constraint when performing
+  // hit-and-run sampling.
+  std::vector<bool> skip(A_.rows(), false);
+  if (subspace.has_value()) {
+    const double squared_tol = tol * tol;
+    VectorXd subspace_j_squared_norm(subspace->cols());
+    for (int j = 0; j < subspace->cols(); ++j) {
+      subspace_j_squared_norm(j) = subspace->col(j).squaredNorm();
+    }
+    for (int i = 0; i < A_.rows(); ++i) {
+      skip[i] = true;
+      const double Ai_squared_norm = A_.row(i).squaredNorm();
+      for (int j = 0; j < subspace->cols(); ++j) {
+        if (std::pow(A_.row(i) * subspace->col(j), 2) >
+            squared_tol * Ai_squared_norm * subspace_j_squared_norm(j)) {
+          skip[i] = false;
+          break;
+        }
+      }
+    }
+  }
 
   for (int step = 0; step < mixing_steps; ++step) {
     // Choose a random direction.
-    for (int i = 0; i < direction.size(); ++i) {
-      direction[i] = gaussian(*generator);
+    for (int i = 0; i < gaussian_sample.size(); ++i) {
+      gaussian_sample[i] = gaussian(*generator);
     }
+    direction =
+        subspace.has_value() ? *subspace * gaussian_sample : gaussian_sample;
     // Find max and min θ subject to
     //   A(previous_sample + θ*direction) ≤ b,
     // aka ∀i, θ * (A * direction)[i] ≤ (b - A * previous_sample)[i].
@@ -535,7 +596,9 @@ VectorXd HPolyhedron::UniformSample(
     double theta_max = std::numeric_limits<double>::infinity();
     double theta_min = -theta_max;
     for (int i = 0; i < line_a.size(); ++i) {
-      if (line_a[i] < 0.0) {
+      if (skip[i]) {
+        continue;
+      } else if (line_a[i] < 0.0) {
         theta_min = std::max(theta_min, line_b[i] / line_a[i]);
       } else if (line_a[i] > 0.0) {
         theta_max = std::min(theta_max, line_b[i] / line_a[i]);
@@ -555,16 +618,32 @@ VectorXd HPolyhedron::UniformSample(
     current_sample = current_sample + theta * direction;
   }
   // The new sample is previous_sample + θ * direction.
+
+  const double kWarnTolerance = 1e-8;
+  if ((current_sample - previous_sample).template lpNorm<Eigen::Infinity>() <
+      kWarnTolerance) {
+    // If the new sample is extremely close to the previous sample, the user
+    // may have a lower-dimensional polytope. We warn them if this happens. Note
+    // that we use an absolute tolerance here, since it's unclear how to compute
+    // an appropriate relative tolerance.
+    drake::log()->warn(
+        "The Hit and Run algorithm produced a random guess that is extremely "
+        "close to `previous_sample`, which could indicate that the HPolyhedron "
+        "being sampled is not full-dimensional. To draw samples from such an "
+        "HPolyhedron, please use the `subspace` argument.");
+  }
   return current_sample;
 }
 
 // Note: This method only exists to effectively provide ChebyshevCenter(),
 // which is a non-static class method, as a default argument for
 // previous_sample in the UniformSample method above.
-VectorXd HPolyhedron::UniformSample(RandomGenerator* generator,
-                                    const int mixing_steps) const {
+VectorXd HPolyhedron::UniformSample(
+    RandomGenerator* generator, const int mixing_steps,
+    const std::optional<Eigen::Ref<const Eigen::MatrixXd>>& subspace,
+    double tol) const {
   VectorXd center = ChebyshevCenter();
-  return UniformSample(generator, center, mixing_steps);
+  return UniformSample(generator, center, mixing_steps, subspace, tol);
 }
 
 HPolyhedron HPolyhedron::MakeBox(const Eigen::Ref<const VectorXd>& lb,
@@ -600,11 +679,24 @@ HPolyhedron HPolyhedron::MakeL1Ball(const int dim) {
 }
 
 std::optional<bool> HPolyhedron::DoIsBoundedShortcut() const {
+  if (IsEmpty()) {
+    // We must always test if an HPolyhedron is empty, as all subsequent tests
+    // depend on the HPolyhedron being nonempty. See
+    // BoundednessCheckEmptyEdgeCases in hpolyhedron_test.cc for examples.
+    return true;
+  }
   if (A_.rows() < A_.cols()) {
+    // If A_ has fewer rows than columns, then either the HPolyhedron is
+    // unbounded, or it's empty due to a subset of the inequalities being
+    // mutually exclusive (and therefore bounded). Emptiness has already
+    // been checked above, so it's unbounded.
     return false;
   }
   Eigen::ColPivHouseholderQR<MatrixXd> qr(A_);
   if (qr.dimensionOfKernel() > 0) {
+    // A similar edge case to the above is possible, so once again, the
+    // HPolyhedron is bounded if and only if it is empty; because we already
+    // checked for emptiness, it's unbounded.
     return false;
   }
   // Stiemke's theorem of alternatives says that, given A with ker(A) = {0}, we
@@ -1093,8 +1185,8 @@ std::unique_ptr<ConvexSet> HPolyhedron::DoClone() const {
   return std::make_unique<HPolyhedron>(*this);
 }
 
-bool HPolyhedron::DoPointInSet(const Eigen::Ref<const VectorXd>& x,
-                               double tol) const {
+std::optional<bool> HPolyhedron::DoPointInSetShortcut(
+    const Eigen::Ref<const VectorXd>& x, double tol) const {
   DRAKE_DEMAND(A_.cols() == x.size());
   return ((A_ * x).array() <= b_.array() + tol).all();
 }
@@ -1156,26 +1248,6 @@ HPolyhedron::DoToShapeWithPose() const {
       "ToShapeWithPose is not implemented yet for HPolyhedron.  Implementing "
       "this will likely require additional support from the Convex shape "
       "class (to support in-memory mesh data, or file I/O).");
-}
-
-void HPolyhedron::ImplementGeometry(const Box& box, void* data) {
-  Eigen::Matrix<double, 6, 3> A;
-  A << Eigen::Matrix3d::Identity(), -Eigen::Matrix3d::Identity();
-  Vector6d b;
-  // clang-format off
-  b << box.width()/2.0, box.depth()/2.0, box.height()/2.0,
-        box.width()/2.0, box.depth()/2.0, box.height()/2.0;
-  // clang-format on
-  auto* Ab = static_cast<std::pair<MatrixXd, VectorXd>*>(data);
-  Ab->first = A;
-  Ab->second = b;
-}
-
-void HPolyhedron::ImplementGeometry(const HalfSpace&, void* data) {
-  auto* Ab = static_cast<std::pair<MatrixXd, VectorXd>*>(data);
-  // z <= 0.0.
-  Ab->first = Eigen::RowVector3d{0.0, 0.0, 1.0};
-  Ab->second = Vector1d{0.0};
 }
 
 HPolyhedron HPolyhedron::PontryaginDifference(const HPolyhedron& other) const {

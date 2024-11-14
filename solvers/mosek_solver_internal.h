@@ -14,6 +14,7 @@
 #include "drake/solvers/constraint.h"
 #include "drake/solvers/mathematical_program.h"
 #include "drake/solvers/mathematical_program_result.h"
+#include "drake/solvers/specific_options.h"
 
 namespace drake {
 namespace solvers {
@@ -349,23 +350,23 @@ class MosekSolverProgram {
           lorentz_cone_acc_indices,
       const std::unordered_map<Binding<RotatedLorentzConeConstraint>,
                                MSKint64t>& rotated_lorentz_cone_acc_indices,
+      const std::unordered_map<Binding<LinearMatrixInequalityConstraint>,
+                               MSKint64t>& lmi_acc_indices,
       const std::unordered_map<Binding<ExponentialConeConstraint>, MSKint64t>&
           exp_cone_acc_indices,
       const std::unordered_map<Binding<PositiveSemidefiniteConstraint>,
                                MSKint32t>& psd_barvar_indices,
       MathematicalProgramResult* result) const;
 
-  // @param[out] print_to_console Set to true if solver options requires
-  // printing the log to the console.
-  // @param[out] print_file_name Set to the name of the print file store in
-  // solver options. If solver options doesn't store the print file name, then
-  // set *print_file_name to an empty string.
+  // @param[in] options The options to copy into our task. It is mutable so
+  // that we can mutate it for efficiency; the data may be invalid afterwards,
+  // so the caller should not use it for anything after we return.
+  // @param[out] is_printing Set to true iff solver is printing to console or
+  // file, to indicate we want more details when possible.
   // @param[out] msk_writedata If solver options stores the file for writing
   // data, then put the file name to msk_writedata for later use.
-  MSKrescodee UpdateOptions(const SolverOptions& solver_options,
-                            SolverId mosek_id, bool* print_to_console,
-                            std::string* print_file_name,
-                            std::optional<std::string>* msk_writedata);
+  void UpdateOptions(internal::SpecificOptions* options, bool* is_printing,
+                     std::optional<std::string>* msk_writedata);
 
   MSKtask_t task() const { return task_; }
 
@@ -602,6 +603,21 @@ MSKrescodee SetAffineConeConstraintDualSolution(
       // the dual cone of K_drake, likewise K_mosek_dual is the dual cone of
       // K_mosek.
       dual_sol(0) *= 0.5;
+    }
+    if constexpr (std::is_same_v<C, LinearMatrixInequalityConstraint>) {
+      // The dual solution returned by Mosek is the lower triangular part of the
+      // psd matrix, but the off-diagonal terms are scaled by sqrt(2). We need
+      // to scale the off-diagonal terms back.
+      int dual_sol_entry_count = 0;
+      const double sqrt2 = std::sqrt(2);
+      for (int j = 0; j < binding.evaluator()->matrix_rows(); ++j) {
+        for (int i = j; i < binding.evaluator()->matrix_rows(); ++i) {
+          if (i != j) {
+            dual_sol(dual_sol_entry_count) /= sqrt2;
+          }
+          ++dual_sol_entry_count;
+        }
+      }
     }
     result->set_dual_solution(binding, dual_sol);
   }

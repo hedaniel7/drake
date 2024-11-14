@@ -52,6 +52,7 @@ PYBIND11_MODULE(primitives, m) {
   constexpr auto& doc = pydrake_doc.drake.systems;
 
   py::module::import("pydrake.systems.framework");
+  py::module::import("pydrake.trajectories");
 
   py::enum_<PerceptronActivationType>(
       m, "PerceptronActivationType", doc.PerceptronActivationType.doc)
@@ -587,7 +588,9 @@ PYBIND11_MODULE(primitives, m) {
             doc.ZeroOrderHold.ctor
                 .doc_3args_period_sec_abstract_model_value_offset_sec)
         .def("period", &ZeroOrderHold<T>::period, doc.ZeroOrderHold.period.doc)
-        .def("offset", &ZeroOrderHold<T>::offset, doc.ZeroOrderHold.offset.doc);
+        .def("offset", &ZeroOrderHold<T>::offset, doc.ZeroOrderHold.offset.doc)
+        .def("SetVectorState", &ZeroOrderHold<T>::SetVectorState,
+            doc.ZeroOrderHold.SetVectorState.doc);
 
     DefineTemplateClassWithDefault<TrajectorySource<T>, LeafSystem<T>>(
         m, "TrajectorySource", GetPyParam<T>(), doc.TrajectorySource.doc)

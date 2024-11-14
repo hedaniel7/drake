@@ -48,6 +48,8 @@ namespace multibody {
 
 class MultibodyPlantTester {
  public:
+  // Returns the manager for the given plant.
+  // @pre The plant must be discrete time and already finalized.
   static CompliantContactManager<double>& manager(
       const MultibodyPlant<double>& plant) {
     auto* manager = dynamic_cast<CompliantContactManager<double>*>(
@@ -510,6 +512,8 @@ GTEST_TEST(SapDriverTest, ConstraintActiveStatus) {
 }
 
 TEST_F(MultibodyPlantRemodeling, AddPdControllerConstraints) {
+  BuildModel();
+  DoRemoval(true /* remove actuator */, false /* do not remove joint */);
   // Set up actuators with pd controllers.
   for (JointActuatorIndex actuator_index : plant_->GetJointActuatorIndices()) {
     JointActuator<double>& actuator =

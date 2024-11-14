@@ -30,7 +30,7 @@ Eigen::Quaterniond Vector4ToQuaternion(
 
 class TwoFreeBodiesTest : public ::testing::Test {
  public:
-  DRAKE_NO_COPY_NO_MOVE_NO_ASSIGN(TwoFreeBodiesTest)
+  DRAKE_NO_COPY_NO_MOVE_NO_ASSIGN(TwoFreeBodiesTest);
 
   TwoFreeBodiesTest()
       : two_bodies_plant_(ConstructTwoFreeBodiesPlant<double>()),
@@ -183,7 +183,7 @@ GTEST_TEST(InverseKinematicsTest, ConstructorLockedJoints) {
   // Leave joint1 unlocked.
 
   // Lock body2's floating joint to an un-normalized initial value.
-  joint2.set_quaternion(&*context, Eigen::Quaternion<double>(0, 3.0, 0, 0));
+  joint2.SetQuaternion(&*context, Eigen::Quaternion<double>(0, 3.0, 0, 0));
   joint2.Lock(&*context);
 
   // Set limits on joint3, but do not lock it.
@@ -352,8 +352,7 @@ TEST_F(TwoFreeBodiesTest, OrientationCost) {
 
   const math::RotationMatrix<double> R_AB =
       (X_WAbar.rotation() * R_AbarA).inverse() * X_WBbar.rotation() * R_BbarB;
-  const double theta =
-      math::wrap_to(R_AB.ToAngleAxis().angle(), -M_PI / 2.0, M_PI / 2.0);
+  const double theta = R_AB.ToAngleAxis().angle();
   EXPECT_NEAR(ik_.prog().EvalBindingAtInitialGuess(binding)[0],
               c * (1.0 - cos(theta)), 1e-12);
 }

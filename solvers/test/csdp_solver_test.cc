@@ -3,6 +3,7 @@
 #include <gtest/gtest.h>
 
 #include "drake/common/test_utilities/eigen_matrix_compare.h"
+#include "drake/common/test_utilities/expect_throws_message.h"
 #include "drake/solvers/test/csdp_test_examples.h"
 #include "drake/solvers/test/linear_program_examples.h"
 #include "drake/solvers/test/second_order_cone_program_examples.h"
@@ -74,6 +75,41 @@ TEST_F(TrivialSDP1, Solve) {
     EXPECT_NEAR(result.get_optimal_cost(), -2.0 / 3.0, tol);
     const Eigen::Matrix3d X1_expected = Eigen::Matrix3d::Constant(1.0 / 3);
     EXPECT_TRUE(CompareMatrices(result.GetSolution(X1_), X1_expected, tol));
+  }
+}
+
+GTEST_TEST(TestSemidefiniteProgram, TestTrivial2x2SDP) {
+  CsdpSolver solver;
+  if (solver.available()) {
+    TestTrivial2x2SDP(solver, 1E-5, /*check_dual=*/false, /*dual_tol=*/1E-5);
+  }
+}
+
+GTEST_TEST(TestSemidefiniteProgram, Test1x1with3x3SDP) {
+  CsdpSolver solver;
+  if (solver.available()) {
+    Test1x1with3x3SDP(solver, 1E-4, /*check_dual=*/false, /*dual_tol=*/1E-5);
+  }
+}
+
+GTEST_TEST(TestSemidefiniteProgram, Test2x2with3x3SDP) {
+  CsdpSolver solver;
+  if (solver.available()) {
+    Test2x2with3x3SDP(solver, 1E-2, /*check_dual=*/false, /*dual_tol=*/1E-5);
+  }
+}
+
+GTEST_TEST(TestSemidefiniteProgram, TestTrivial1x1LMI) {
+  CsdpSolver solver;
+  if (solver.available()) {
+    TestTrivial1x1LMI(solver, 1E-5, /*check_dual=*/false, /*dual_tol=*/1E-7);
+  }
+}
+
+GTEST_TEST(TestSemidefiniteProgram, Test2X2LMI) {
+  CsdpSolver solver;
+  if (solver.available()) {
+    Test2x2LMI(solver, 1E-7, /*check_dual=*/false, /*dual_tol=*/1E-7);
   }
 }
 
@@ -258,7 +294,23 @@ GTEST_TEST(TestSOCP, TestSocpDuplicatedVariable2) {
       SolverOptions solver_options;
       solver_options.SetOption(solver.id(), "drake::RemoveFreeVariableMethod",
                                static_cast<int>(method));
+      // Loosen the tolerances a bit (otherwise macOS is sad).
+      solver_options.SetOption(solver.id(), "axtol", 1e-6);
+      solver_options.SetOption(solver.id(), "objtol", 1e-6);
       TestSocpDuplicatedVariable2(solver, solver_options, 1E-5);
+    }
+  }
+}
+
+GTEST_TEST(TestSOCP, TestSocpDuplicatedVariable3) {
+  for (auto method : GetRemoveFreeVariableMethods()) {
+    SCOPED_TRACE(fmt::format("method = {}", method));
+    CsdpSolver solver;
+    if (solver.available()) {
+      SolverOptions solver_options;
+      solver_options.SetOption(solver.id(), "drake::RemoveFreeVariableMethod",
+                               static_cast<int>(method));
+      TestSocpDuplicatedVariable3(solver, solver_options, 1E-4);
     }
   }
 }
@@ -330,7 +382,8 @@ GTEST_TEST(TestSemidefiniteProgram, EigenvalueProblem) {
       SolverOptions solver_options;
       solver_options.SetOption(solver.id(), "drake::RemoveFreeVariableMethod",
                                static_cast<int>(method));
-      SolveEigenvalueProblem(solver, solver_options, 1E-6);
+      SolveEigenvalueProblem(solver, solver_options, 1E-6,
+                             /*check_dual=*/false);
     }
   }
 }
@@ -498,6 +551,50 @@ TEST_F(TrivialSDP1, SolveVerbose) {
     solver.Solve(*prog_, {}, options);
   }
 }
+
+// This is a code coverage test of reporting malformed options.
+TEST_F(TrivialSDP1, UnknownRemoveFreeVariableMethod) {
+  UnivariateNonnegative1 example;
+  CsdpSolver solver;
+  SolverOptions options;
+  options.SetOption(solver.id(), "drake::RemoveFreeVariableMethod", 222);
+  if (solver.available()) {
+    DRAKE_EXPECT_THROWS_MESSAGE(solver.Solve(example.prog(), {}, options),
+                                ".*Bad.*RemoveFreeVariableMethod.*");
+  }
+}
+
+// Confirm that setting solver options has an effect on the solve.
+TEST_F(TrivialSDP1, SolverOptionsPropagation) {
+  CsdpSolver solver;
+  if (!solver.available()) {
+    return;
+  }
+
+  // Solving with default options works fine.
+  {
+    SolverOptions options;
+    auto result = solver.Solve(*prog_, {}, options);
+    EXPECT_TRUE(result.is_success());
+  }
+
+  // Setting an absurd `int` option causes a failure.
+  {
+    SolverOptions options;
+    options.SetOption(CsdpSolver::id(), "maxiter", 0);
+    auto result = solver.Solve(*prog_, {}, options);
+    EXPECT_EQ(result.get_solution_result(), kIterationLimit);
+  }
+
+  // Setting an absurd `double` option causes a failure.
+  {
+    SolverOptions options;
+    options.SetOption(CsdpSolver::id(), "axtol", 1e-100);
+    auto result = solver.Solve(*prog_, {}, options);
+    EXPECT_EQ(result.get_solution_result(), kSolverSpecificError);
+  }
+}
+
 }  // namespace test
 }  // namespace solvers
 }  // namespace drake

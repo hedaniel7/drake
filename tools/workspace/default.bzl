@@ -3,7 +3,6 @@ load("//tools/workspace/abseil_cpp_internal:repository.bzl", "abseil_cpp_interna
 load("//tools/workspace/bazel_skylib:repository.bzl", "bazel_skylib_repository")  # noqa
 load("//tools/workspace/bazelisk:repository.bzl", "bazelisk_repository")
 load("//tools/workspace/blas:repository.bzl", "blas_repository")
-load("//tools/workspace/boost_internal:repository.bzl", "boost_internal_repository")  # noqa
 load("//tools/workspace/build_bazel_apple_support:repository.bzl", "build_bazel_apple_support_repository")  # noqa
 load("//tools/workspace/buildifier:repository.bzl", "buildifier_repository")
 load("//tools/workspace/cc:repository.bzl", "cc_repository")
@@ -12,7 +11,6 @@ load("//tools/workspace/clang_cindex_python3_internal:repository.bzl", "clang_ci
 load("//tools/workspace/clarabel_cpp_internal:repository.bzl", "clarabel_cpp_internal_repository")  # noqa
 load("//tools/workspace/clp_internal:repository.bzl", "clp_internal_repository")  # noqa
 load("//tools/workspace/coinutils_internal:repository.bzl", "coinutils_internal_repository")  # noqa
-load("//tools/workspace/com_github_nelhage_rules_boost_internal:repository.bzl", "com_github_nelhage_rules_boost_internal_repository")  # noqa
 load("//tools/workspace/com_jidesoft_jide_oss:repository.bzl", "com_jidesoft_jide_oss_repository")  # noqa
 load("//tools/workspace/common_robotics_utilities:repository.bzl", "common_robotics_utilities_repository")  # noqa
 load("//tools/workspace/commons_io:repository.bzl", "commons_io_repository")
@@ -37,6 +35,7 @@ load("//tools/workspace/gurobi:repository.bzl", "gurobi_repository")
 load("//tools/workspace/gymnasium_py:repository.bzl", "gymnasium_py_repository")  # noqa
 load("//tools/workspace/gz_math_internal:repository.bzl", "gz_math_internal_repository")  # noqa
 load("//tools/workspace/gz_utils_internal:repository.bzl", "gz_utils_internal_repository")  # noqa
+load("//tools/workspace/highway_internal:repository.bzl", "highway_internal_repository")  # noqa
 load("//tools/workspace/ipopt:repository.bzl", "ipopt_repository")
 load("//tools/workspace/ipopt_internal_fromsource:repository.bzl", "ipopt_internal_fromsource_repository")  # noqa
 load("//tools/workspace/ipopt_internal_pkgconfig:repository.bzl", "ipopt_internal_pkgconfig_repository")  # noqa
@@ -52,6 +51,7 @@ load("//tools/workspace/meshcat:repository.bzl", "meshcat_repository")
 load("//tools/workspace/mosek:repository.bzl", "mosek_repository")
 load("//tools/workspace/mpmath_py_internal:repository.bzl", "mpmath_py_internal_repository")  # noqa
 load("//tools/workspace/msgpack_internal:repository.bzl", "msgpack_internal_repository")  # noqa
+load("//tools/workspace/mujoco_menagerie_internal:repository.bzl", "mujoco_menagerie_internal_repository")  # noqa
 load("//tools/workspace/mumps_internal:repository.bzl", "mumps_internal_repository")  # noqa
 load("//tools/workspace/mypy_extensions_internal:repository.bzl", "mypy_extensions_internal_repository")  # noqa
 load("//tools/workspace/mypy_internal:repository.bzl", "mypy_internal_repository")  # noqa
@@ -61,7 +61,6 @@ load("//tools/workspace/net_sf_jchart2d:repository.bzl", "net_sf_jchart2d_reposi
 load("//tools/workspace/nlohmann_internal:repository.bzl", "nlohmann_internal_repository")  # noqa
 load("//tools/workspace/nlopt_internal:repository.bzl", "nlopt_internal_repository")  # noqa
 load("//tools/workspace/onetbb_internal:repository.bzl", "onetbb_internal_repository")  # noqa
-load("//tools/workspace/openblas:repository.bzl", "openblas_repository")
 load("//tools/workspace/opencl:repository.bzl", "opencl_repository")
 load("//tools/workspace/opengl:repository.bzl", "opengl_repository")
 load("//tools/workspace/openusd_internal:repository.bzl", "openusd_internal_repository")  # noqa
@@ -75,6 +74,7 @@ load("//tools/workspace/python:repository.bzl", "python_repository")
 load("//tools/workspace/qdldl_internal:repository.bzl", "qdldl_internal_repository")  # noqa
 load("//tools/workspace/qhull_internal:repository.bzl", "qhull_internal_repository")  # noqa
 load("//tools/workspace/ros_xacro_internal:repository.bzl", "ros_xacro_internal_repository")  # noqa
+load("//tools/workspace/rules_cc:repository.bzl", "rules_cc_repository")  # noqa
 load("//tools/workspace/rules_license:repository.bzl", "rules_license_repository")  # noqa
 load("//tools/workspace/rules_python:repository.bzl", "rules_python_repository")  # noqa
 load("//tools/workspace/rules_rust:repository.bzl", "rules_rust_repository")
@@ -84,12 +84,14 @@ load("//tools/workspace/scs_internal:repository.bzl", "scs_internal_repository")
 load("//tools/workspace/sdformat_internal:repository.bzl", "sdformat_internal_repository")  # noqa
 load("//tools/workspace/snopt:repository.bzl", "snopt_repository")
 load("//tools/workspace/spdlog:repository.bzl", "spdlog_repository")
+load("//tools/workspace/spgrid_internal:repository.bzl", "spgrid_internal_repository")  # noqa
 load("//tools/workspace/stable_baselines3_internal:repository.bzl", "stable_baselines3_internal_repository")  # noqa
 load("//tools/workspace/statsjs:repository.bzl", "statsjs_repository")
 load("//tools/workspace/stduuid_internal:repository.bzl", "stduuid_internal_repository")  # noqa
 load("//tools/workspace/styleguide:repository.bzl", "styleguide_repository")
 load("//tools/workspace/suitesparse_internal:repository.bzl", "suitesparse_internal_repository")  # noqa
 load("//tools/workspace/sympy_py_internal:repository.bzl", "sympy_py_internal_repository")  # noqa
+load("//tools/workspace/tinygltf_internal:repository.bzl", "tinygltf_internal_repository")  # noqa
 load("//tools/workspace/tinyobjloader_internal:repository.bzl", "tinyobjloader_internal_repository")  # noqa
 load("//tools/workspace/tinyxml2_internal:repository.bzl", "tinyxml2_internal_repository")  # noqa
 load("//tools/workspace/tomli_internal:repository.bzl", "tomli_internal_repository")  # noqa
@@ -122,8 +124,6 @@ def add_default_repositories(excludes = [], mirrors = DEFAULT_MIRRORS):
         bazel_skylib_repository(name = "bazel_skylib", mirrors = mirrors)
     if "blas" not in excludes:
         blas_repository(name = "blas")
-    if "boost_internal" not in excludes:
-        boost_internal_repository(name = "boost_internal", mirrors = mirrors)
     if "build_bazel_apple_support" not in excludes:
         build_bazel_apple_support_repository(name = "build_bazel_apple_support", mirrors = mirrors)  # noqa
     if "buildifier" not in excludes:
@@ -142,8 +142,6 @@ def add_default_repositories(excludes = [], mirrors = DEFAULT_MIRRORS):
         coinutils_internal_repository(name = "coinutils_internal", mirrors = mirrors)  # noqa
     if "com_jidesoft_jide_oss" not in excludes:
         com_jidesoft_jide_oss_repository(name = "com_jidesoft_jide_oss", mirrors = mirrors)  # noqa
-    if "com_github_nelhage_rules_boost_internal" not in excludes:
-        com_github_nelhage_rules_boost_internal_repository(name = "com_github_nelhage_rules_boost_internal", mirrors = mirrors)  # noqa
     if "common_robotics_utilities" not in excludes:
         common_robotics_utilities_repository(name = "common_robotics_utilities", mirrors = mirrors)  # noqa
     if "commons_io" not in excludes:
@@ -190,6 +188,8 @@ def add_default_repositories(excludes = [], mirrors = DEFAULT_MIRRORS):
         gz_utils_internal_repository(name = "gz_utils_internal", mirrors = mirrors)  # noqa
     if "gymnasium_py" not in excludes:
         gymnasium_py_repository(name = "gymnasium_py", mirrors = mirrors)
+    if "highway_internal" not in excludes:
+        highway_internal_repository(name = "highway_internal", mirrors = mirrors)  # noqa
     if "ipopt" not in excludes:
         ipopt_repository(name = "ipopt")
     if "ipopt_internal_fromsource" not in excludes:
@@ -220,6 +220,8 @@ def add_default_repositories(excludes = [], mirrors = DEFAULT_MIRRORS):
         mpmath_py_internal_repository(name = "mpmath_py_internal", mirrors = mirrors)  # noqa
     if "msgpack_internal" not in excludes:
         msgpack_internal_repository(name = "msgpack_internal", mirrors = mirrors)  # noqa
+    if "mujoco_menagerie_internal" not in excludes:
+        mujoco_menagerie_internal_repository(name = "mujoco_menagerie_internal", mirrors = mirrors)  # noqa
     if "mumps_internal" not in excludes:
         mumps_internal_repository(name = "mumps_internal")
     if "mypy_extensions_internal" not in excludes:
@@ -238,8 +240,6 @@ def add_default_repositories(excludes = [], mirrors = DEFAULT_MIRRORS):
         nlopt_internal_repository(name = "nlopt_internal", mirrors = mirrors)
     if "onetbb_internal" not in excludes:
         onetbb_internal_repository(name = "onetbb_internal", mirrors = mirrors)
-    if "openblas" not in excludes:
-        openblas_repository(name = "openblas")
     if "opencl" not in excludes:
         opencl_repository(name = "opencl")
     if "opengl" not in excludes:
@@ -266,6 +266,8 @@ def add_default_repositories(excludes = [], mirrors = DEFAULT_MIRRORS):
         qhull_internal_repository(name = "qhull_internal", mirrors = mirrors)
     if "ros_xacro_internal" not in excludes:
         ros_xacro_internal_repository(name = "ros_xacro_internal", mirrors = mirrors)  # noqa
+    if "rules_cc" not in excludes:
+        rules_cc_repository(name = "rules_cc", mirrors = mirrors)
     if "rules_license" not in excludes:
         rules_license_repository(name = "rules_license", mirrors = mirrors)
     if "rules_python" not in excludes:
@@ -284,6 +286,8 @@ def add_default_repositories(excludes = [], mirrors = DEFAULT_MIRRORS):
         snopt_repository(name = "snopt")
     if "spdlog" not in excludes:
         spdlog_repository(name = "spdlog", mirrors = mirrors)
+    if "spgrid_internal" not in excludes:
+        spgrid_internal_repository(name = "spgrid_internal")
     if "stable_baselines3_internal" not in excludes:
         stable_baselines3_internal_repository(name = "stable_baselines3_internal", mirrors = mirrors)  # noqa
     if "statsjs" not in excludes:
@@ -296,6 +300,8 @@ def add_default_repositories(excludes = [], mirrors = DEFAULT_MIRRORS):
         suitesparse_internal_repository(name = "suitesparse_internal", mirrors = mirrors)  # noqa
     if "sympy_py_internal" not in excludes:
         sympy_py_internal_repository(name = "sympy_py_internal", mirrors = mirrors)  # noqa
+    if "tinygltf_internal" not in excludes:
+        tinygltf_internal_repository(name = "tinygltf_internal", mirrors = mirrors)  # noqa
     if "tinyobjloader_internal" not in excludes:
         tinyobjloader_internal_repository(name = "tinyobjloader_internal", mirrors = mirrors)  # noqa
     if "tinyxml2_internal" not in excludes:

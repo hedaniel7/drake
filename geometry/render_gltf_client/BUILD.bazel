@@ -29,11 +29,11 @@ drake_cc_library(
     srcs = ["factory.cc"],
     hdrs = ["factory.h"],
     visibility = ["//visibility:public"],
-    interface_deps = [
+    deps = [
         ":render_engine_gltf_client_params",
         "//geometry/render:render_engine",
     ],
-    deps = [
+    implementation_deps = [
         ":internal_render_engine_gltf_client",
         "//common:network_policy",
     ],
@@ -56,10 +56,10 @@ drake_cc_library(
     hdrs = ["internal_http_service.h"],
     internal = True,
     visibility = ["//visibility:private"],
-    interface_deps = [
+    deps = [
         "//common:essential",
     ],
-    deps = [
+    implementation_deps = [
         "@fmt",
     ],
 )
@@ -70,10 +70,10 @@ drake_cc_library(
     hdrs = ["internal_http_service_curl.h"],
     internal = True,
     visibility = ["//visibility:private"],
-    interface_deps = [
+    deps = [
         ":internal_http_service",
     ],
-    deps = [
+    implementation_deps = [
         "//common:unused",
         "@curl_internal//:libcurl",
         "@fmt",
@@ -117,9 +117,11 @@ drake_cc_library(
         ":internal_merge_gltf",
         ":internal_render_client",
         "//common:essential",
+        "//common:find_resource",
         "//geometry/render:render_camera",
         "//geometry/render_vtk:internal_render_engine_vtk",
         "//systems/sensors:image",
+        "@common_robotics_utilities",
         "@nlohmann_internal//:nlohmann",
         "@vtk_internal//:vtkCommonCore",
         "@vtk_internal//:vtkCommonMath",
@@ -138,7 +140,7 @@ drake_cc_library(
         "//common:drake_export",
         "//common:essential",
         "//common:find_resource",
-        "@common_robotics_utilities",
+        "//geometry:mesh_source",
         "@nlohmann_internal//:nlohmann",
     ],
 )
@@ -236,6 +238,7 @@ drake_cc_googletest(
     name = "internal_render_engine_gltf_client_test",
     data = [
         ":test_resources",
+        "//geometry/render:test_models",
     ],
     tags = vtk_test_tags(),
     deps = [
@@ -270,7 +273,6 @@ drake_cc_binary(
         "//geometry/render_vtk:factory",
         "//geometry/render_vtk:internal_render_engine_vtk",
         "//math:geometric_transform",
-        "//systems/sensors:color_palette",
         "//systems/sensors:image",
         "@gflags",
         "@vtk_internal//:vtkCommonCore",
@@ -332,6 +334,7 @@ drake_cc_binary(
 
 drake_py_unittest(
     name = "acceptance_test",
+    allow_network = ["render_gltf_client"],
     data = [
         ":client_demo",
         ":server_demo",

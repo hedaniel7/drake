@@ -14,12 +14,16 @@ def bazelisk_repository(
         $ cp -t third_party/com_github_bazelbuild_bazelisk/ \\
             bazel-drake/external/bazelisk/LICENSE \\
             bazel-drake/external/bazelisk/bazelisk.py
+
+        Additionally, you must manually update the version number in
+          setup/ubuntu/source_distribution/install_bazelisk.sh
+        and adjust the expected checksums accordingly.
         """,
-        commit = "v1.19.0",
-        sha256 = "4c291875707cdd98da87ad34e287c06384436f60cb76e2ac03c32d51f48c96ce",  # noqa
+        commit = "v1.22.1",
+        sha256 = "64b584d1019d54cde34123d8da06c718c7a7c591f9fd49a29dccb825b9e95e8c",  # noqa
         build_file = ":package.BUILD.bazel",
         patches = [
-            ":patches/pull494.patch",
+            ":patches/upstream/pull494.patch",
         ],
         mirrors = mirrors,
     )

@@ -16,6 +16,12 @@ from pydrake.perception import PointCloud
 from pydrake.systems.analysis import Simulator_
 from pydrake.systems.framework import DiagramBuilder_, InputPort_
 
+# TODO(mwoehlke-kitware): Remove this when Jammy's python3-u-msgpack has been
+# updated to 2.5.2 or later.
+if not hasattr(umsgpack, 'Hashable'):
+    import collections
+    setattr(umsgpack.collections, 'Hashable', collections.abc.Hashable)
+
 
 class TestGeometryVisualizers(unittest.TestCase):
     @numpy_compare.check_nonsymbolic_types
@@ -210,7 +216,8 @@ class TestGeometryVisualizers(unittest.TestCase):
             "name": "alice",
         }))
         self.assertEqual(meshcat.GetButtonClicks(name="alice"), 1)
-        meshcat.DeleteButton(name="alice")
+        self.assertTrue(meshcat.DeleteButton(name="alice"))
+        self.assertFalse(meshcat.DeleteButton(name="alice", strict=False))
         meshcat.AddSlider(name="slider",
                           min=0,
                           max=1,
@@ -223,6 +230,7 @@ class TestGeometryVisualizers(unittest.TestCase):
         self.assertAlmostEqual(meshcat.GetSliderValue(
             name="slider"), 0.7, delta=1e-14)
         meshcat.DeleteSlider(name="slider")
+        meshcat.DeleteSlider(name="slider", strict=False)
         meshcat.DeleteAddedControls()
         self.assertIn("data:application/octet-binary;base64",
                       meshcat.StaticHtml())
@@ -231,8 +239,9 @@ class TestGeometryVisualizers(unittest.TestCase):
         self.assertIsNone(gamepad.index)
         self.assertEqual(len(gamepad.button_values), 0)
         self.assertEqual(len(gamepad.axes), 0)
-        meshcat.SetRealtimeRate(1.0)
+        meshcat.SetRealtimeRate(rate=1.0)
         meshcat.GetRealtimeRate()
+        meshcat.SetSimulationTime(sim_time=1.0)
         meshcat.Flush()
 
         meshcat.StartRecording(frames_per_second=64.0,
@@ -289,6 +298,14 @@ class TestGeometryVisualizers(unittest.TestCase):
         # The pose is None because no meshcat session has broadcast its pose.
         self.assertIsNone(meshcat.GetTrackedCameraPose())
 
+        # Test updating lights (and make sure types are cast correctly)
+        path = "/Lights/AmbientLight/<object>"
+        attribute = "intensity"
+        meshcat.SetProperty(path, attribute, 2)
+        message = meshcat._GetPackedProperty(path, attribute)
+        parsed = umsgpack.unpackb(message)
+        self.assertEqual(parsed['value'], 2.0)
+
     def test_meshcat_404(self):
         meshcat = mut.Meshcat()
 
@@ -341,7 +358,6 @@ class TestGeometryVisualizers(unittest.TestCase):
         self.assertIn("publish_period", repr(params))
         copy.copy(params)
         vis = mut.MeshcatVisualizer_[T](meshcat=meshcat, params=params)
-        vis.ResetRealtimeRateCalculator()
         vis.Delete()
         self.assertIsInstance(vis.query_object_input_port(), InputPort_[T])
         animation = vis.StartRecording(set_transforms_while_recording=True)

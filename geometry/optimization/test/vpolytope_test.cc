@@ -167,6 +167,17 @@ GTEST_TEST(VPolytopeTest, UnitBoxTest) {
   EXPECT_FALSE(V.PointInSet(out_W, kTol));
 }
 
+// Tests correct handling of the edge case for the "fail fast heuristic" in
+// PointInSet where the query point is exactly the mean of the vertices. In this
+// case, the heuristic generates a degenerate hyperplane but does not falsely
+// claim a that the mean of the vertices lies outside of the set.
+GTEST_TEST(VPolytopeTest, PointInSetFailFastEdgeCase) {
+  VPolytope V = VPolytope::MakeUnitBox(3);
+  Eigen::VectorXd vertex_mean = V.vertices().rowwise().mean();
+  const double kTol = 1e-11;
+  EXPECT_TRUE(V.PointInSet(vertex_mean, kTol));
+}
+
 GTEST_TEST(VPolytopeTest, ArbitraryBoxTest) {
   const RigidTransformd X_WG(math::RollPitchYawd(.1, .2, 3),
                              Vector3d(-4.0, -5.0, -6.0));
@@ -426,6 +437,33 @@ GTEST_TEST(VPolytopeTest, FromUnboundedHPolytopeTest) {
   HPolyhedron H(A, b);
 
   DRAKE_EXPECT_THROWS_MESSAGE(VPolytope{H}, ".*hpoly.IsBounded().*");
+}
+
+GTEST_TEST(VPolytopeTest, FromDegenerateHPolytope) {
+  // The L1 ball in three dimensions always has 4 hyperplanes actives at every
+  // vertex, but no hyperplane is degenerate in our implementation. This leads
+  // to QHull constructing an overdetermined linear system when solving for the
+  // vertices.
+  HPolyhedron H = HPolyhedron::MakeL1Ball(3);
+  VPolytope V(H);
+  Eigen::MatrixXd vertices_expected(3, 6);
+  // clang-format off
+  vertices_expected << 1, -1,  0,  0,  0,  0,
+                       0,  0,  1, -1,  0,  0,
+                       0,  0,  0,  0,  1, -1;
+  // clang-format on
+  EXPECT_EQ(vertices_expected.cols(), V.vertices().cols());
+  for (int i = 0; i < vertices_expected.cols(); ++i) {
+    bool found_match = false;
+    for (int j = 0; j < vertices_expected.cols(); ++j) {
+      if (CompareMatrices(vertices_expected.col(i), V.vertices().col(j),
+                          1e-11)) {
+        found_match = true;
+        break;
+      }
+    }
+    EXPECT_TRUE(found_match);
+  }
 }
 
 GTEST_TEST(VPolytopeTest, ConstructorFromHPolyhedronQHullProblems) {

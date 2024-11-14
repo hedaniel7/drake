@@ -35,6 +35,7 @@ using drake::geometry::Mesh;
 using drake::geometry::PerceptionProperties;
 using drake::geometry::ProximityProperties;
 using drake::geometry::RenderEngineGlParams;
+using drake::geometry::Rgba;
 using drake::math::RigidTransformd;
 using drake::math::RollPitchYawd;
 using drake::math::RotationMatrixd;
@@ -125,10 +126,6 @@ int do_main() {
       "schunk_wsg_50_deformable_bubble.sdf")[0];
 
   /* Add in the bubbles. */
-  auto owned_deformable_model =
-      std::make_unique<DeformableModel<double>>(&plant);
-  DeformableModel<double>* deformable_model = owned_deformable_model.get();
-
   DeformableBodyConfig<double> bubble_config;
   bubble_config.set_youngs_modulus(1e4);                  // [Pa]
   bubble_config.set_poissons_ratio(0.45);                 // unitless
@@ -163,10 +160,11 @@ int do_main() {
   /* Since the deformable geometry is specified through Shape::Mesh, the
    resolution hint is unused. */
   const double unused_resolution_hint = 1.0;
+  DeformableModel<double>& deformable_model = plant.mutable_deformable_model();
   const DeformableBodyId left_bubble_id =
-      deformable_model->RegisterDeformableBody(std::move(left_bubble_instance),
-                                               bubble_config,
-                                               unused_resolution_hint);
+      deformable_model.RegisterDeformableBody(std::move(left_bubble_instance),
+                                              bubble_config,
+                                              unused_resolution_hint);
 
   /* Now we attach the bubble to the WSG finger using a fixed constraint. To do
    that, we specify a box geometry and put all vertices of the bubble geometry
@@ -179,7 +177,7 @@ int do_main() {
   /* All vertices of the deformable bubble mesh inside this box will be subject
    to fixed constraints. */
   const Box box(0.1, 0.004, 0.15);
-  deformable_model->AddFixedConstraint(
+  deformable_model.AddFixedConstraint(
       left_bubble_id, left_finger, X_FlBl, box,
       /* The pose of the box in the left finger's frame. */
       RigidTransformd(Vector3d(0.0, -0.03, -0.1)));
@@ -194,14 +192,14 @@ int do_main() {
   right_bubble_instance->set_proximity_properties(deformable_proximity_props);
   right_bubble_instance->set_perception_properties(perception_properties);
   const DeformableBodyId right_bubble_id =
-      deformable_model->RegisterDeformableBody(std::move(right_bubble_instance),
-                                               bubble_config,
-                                               unused_resolution_hint);
+      deformable_model.RegisterDeformableBody(std::move(right_bubble_instance),
+                                              bubble_config,
+                                              unused_resolution_hint);
   const Body<double>& right_finger = plant.GetBodyByName("right_finger");
   /* Pose of the right finger body (at initialization) in the world frame. */
   const RigidTransformd X_FrBr = RigidTransformd(
       math::RollPitchYawd(-M_PI_2, M_PI_2, 0), Vector3d(0.0, 0.03, -0.1125));
-  deformable_model->AddFixedConstraint(
+  deformable_model.AddFixedConstraint(
       right_bubble_id, right_finger, X_FrBr, box,
       /* The pose of the box in the right finger's frame. */
       RigidTransformd(Vector3d(0.0, 0.03, -0.1)));
@@ -220,19 +218,17 @@ int do_main() {
                       Vector3d(-0.17, 0, 0)),
       std::move(teddy_mesh), "teddy");
   teddy_instance->set_proximity_properties(deformable_proximity_props);
-  deformable_model->RegisterDeformableBody(std::move(teddy_instance),
-                                           teddy_config, 1.0);
-  plant.AddPhysicalModel(std::move(owned_deformable_model));
+  /* Give the teddy bear a brown color for illustration to better distinguish it
+   from the bubble gripper in the visualizer. */
+  IllustrationProperties teddy_illustration_props;
+  teddy_illustration_props.AddProperty("phong", "diffuse",
+                                       Rgba(0.82, 0.71, 0.55, 1.0));
+  teddy_instance->set_illustration_properties(teddy_illustration_props);
+  deformable_model.RegisterDeformableBody(std::move(teddy_instance),
+                                          teddy_config, 1.0);
 
   /* All rigid and deformable models have been added. Finalize the plant. */
   plant.Finalize();
-
-  /* It's essential to connect the vertex position port in DeformableModel to
-   the source configuration port in SceneGraph when deformable bodies are
-   present in the plant. */
-  builder.Connect(
-      deformable_model->vertex_positions_port(),
-      scene_graph.get_source_configuration_port(plant.get_source_id().value()));
 
   /* Set the width between the fingers for open and closed states as well as the
    height to which the gripper lifts the manipuland. */

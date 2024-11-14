@@ -1,4 +1,5 @@
 # Don't use bzlmod yet.
+common --enable_workspace=true
 common --enable_bzlmod=false
 
 # Default to an optimized build.
@@ -26,9 +27,6 @@ build --test_summary=terse
 # they can also build without it, typically by using a select statement.
 # config_setting rules for proprietary software are provided in //tools.
 build --test_tag_filters=-gurobi,-mosek,-snopt
-
-# Inject DISPLAY into test runner environment for tests that use X.
-build --test_env=DISPLAY
 
 # Location of the Gurobi license key file, typically named "gurobi.lic".
 # Setting this --test_env for all configurations is deliberate to improve

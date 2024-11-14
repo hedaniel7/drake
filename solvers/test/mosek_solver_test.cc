@@ -90,6 +90,13 @@ GTEST_TEST(QPtest, TestUnitBallExample) {
   }
 }
 
+GTEST_TEST(QPtest, TestQuadraticCostVariableOrder) {
+  MosekSolver solver;
+  if (solver.available()) {
+    TestQuadraticCostVariableOrder(solver);
+  }
+}
+
 TEST_P(TestEllipsoidsSeparation, TestSOCP) {
   MosekSolver mosek_solver;
   if (mosek_solver.available()) {
@@ -164,6 +171,11 @@ GTEST_TEST(TestSOCP, TestSocpDuplicatedVariable2) {
   TestSocpDuplicatedVariable2(solver, std::nullopt, 1E-6);
 }
 
+GTEST_TEST(TestSOCP, TestSocpDuplicatedVariable3) {
+  MosekSolver solver;
+  TestSocpDuplicatedVariable3(solver, std::nullopt, 1E-5);
+}
+
 GTEST_TEST(TestL2NormCost, ShortestDistanceToThreePoints) {
   MosekSolver solver;
   ShortestDistanceToThreePoints tester{};
@@ -206,7 +218,7 @@ GTEST_TEST(TestSemidefiniteProgram, OuterEllipsoid) {
 GTEST_TEST(TestSemidefiniteProgram, EigenvalueProblem) {
   MosekSolver mosek_solver;
   if (mosek_solver.available()) {
-    SolveEigenvalueProblem(mosek_solver, {}, 1E-7);
+    SolveEigenvalueProblem(mosek_solver, {}, 1E-7, /*check_dual=*/true);
   }
 }
 
@@ -286,11 +298,11 @@ GTEST_TEST(MosekTest, TestLogging) {
   solver_options.SetOption(CommonSolverOption::kPrintToConsole, 1);
   DRAKE_EXPECT_THROWS_MESSAGE(
       solver.Solve(prog, {}, solver_options, &result),
-      ".* cannot print to both the console and the log file.");
+      ".*cannot print to both the console and a file.*");
 }
 
 GTEST_TEST(MosekTest, SolverOptionsTest) {
-  // We test that passing solver options change the behavior of
+  // We test that passing solver options changes the behavior of
   // MosekSolver::Solve().
   MathematicalProgram prog;
   auto x = prog.NewContinuousVariables<2>();
@@ -299,10 +311,18 @@ GTEST_TEST(MosekTest, SolverOptionsTest) {
   prog.AddConstraint(x(1) >= 0);
   prog.AddLinearCost(1E5 * x(0) + x(1));
 
-  SolverOptions solver_options;
-  solver_options.SetOption(MosekSolver::id(), "MSK_DPAR_DATA_TOL_C_HUGE", 1E3);
-  MathematicalProgramResult result;
   MosekSolver mosek_solver;
+  SolverOptions solver_options;
+  MathematicalProgramResult result;
+
+  // Set a string option, to at least make sure nothing crashes. Unfortunately,
+  // there is no MOSEK string option that affects the output or logging, so we
+  // cannot actually test that the option is propagated correctly.
+  solver_options.SetOption(MosekSolver::id(), "MSK_SPAR_BAS_SOL_FILE_NAME",
+                           "/tmp/mosek.bas");
+
+  // Solve with 1e3 => failed.
+  solver_options.SetOption(MosekSolver::id(), "MSK_DPAR_DATA_TOL_C_HUGE", 1E3);
   mosek_solver.Solve(prog, {}, solver_options, &result);
   EXPECT_FALSE(result.is_success());
   // This response code is defined in
@@ -310,6 +330,8 @@ GTEST_TEST(MosekTest, SolverOptionsTest) {
   const int MSK_RES_ERR_HUGE_C{1375};
   EXPECT_EQ(result.get_solver_details<MosekSolver>().rescode,
             MSK_RES_ERR_HUGE_C);
+
+  // Solve with 1e6 => success.
   solver_options.SetOption(MosekSolver::id(), "MSK_DPAR_DATA_TOL_C_HUGE", 1E6);
   mosek_solver.Solve(prog, {}, solver_options, &result);
   EXPECT_TRUE(result.is_success());
@@ -320,14 +342,35 @@ GTEST_TEST(MosekSolver, SolverOptionsErrorTest) {
   MathematicalProgram prog;
   auto x = prog.NewContinuousVariables<2>();
   prog.AddLinearConstraint(x(0) + x(1) >= 0);
-
   MathematicalProgramResult result;
   MosekSolver mosek_solver;
-  SolverOptions solver_options;
-  solver_options.SetOption(MosekSolver::id(), "non-existing options", 42);
-  DRAKE_EXPECT_THROWS_MESSAGE(
-      mosek_solver.Solve(prog, {}, solver_options, &result),
-      ".*cannot set Mosek option \'non-existing options\' to value \'42\'.*");
+
+  // Test `int`.
+  {
+    SolverOptions solver_options;
+    solver_options.SetOption(MosekSolver::id(), "no_such_option", 42);
+    DRAKE_EXPECT_THROWS_MESSAGE(
+        mosek_solver.Solve(prog, {}, solver_options, &result),
+        ".*cannot set Mosek option \'no_such_option\' to value \'42\'.*");
+  }
+
+  // Test `double`.
+  {
+    SolverOptions solver_options;
+    solver_options.SetOption(MosekSolver::id(), "no_such_option", 0.5);
+    DRAKE_EXPECT_THROWS_MESSAGE(
+        mosek_solver.Solve(prog, {}, solver_options, &result),
+        ".*cannot set Mosek option \'no_such_option\' to value \'0.5\'.*");
+  }
+
+  // Test `string`.
+  {
+    SolverOptions solver_options;
+    solver_options.SetOption(MosekSolver::id(), "no_such_option", "foo");
+    DRAKE_EXPECT_THROWS_MESSAGE(
+        mosek_solver.Solve(prog, {}, solver_options, &result),
+        ".*cannot set Mosek option \'no_such_option\' to value \'foo\'.*");
+  }
 }
 
 GTEST_TEST(MosekTest, Write) {
@@ -483,6 +526,48 @@ GTEST_TEST(MosekTest, SolveSDPwithQuadraticCosts) {
   }
 }
 
+GTEST_TEST(MosekTest, TestTrivial1x1SDP) {
+  MosekSolver solver;
+  if (solver.available()) {
+    TestTrivial1x1SDP(solver, 1E-8, /*check_dual=*/true, /*dual_tol=*/1E-8);
+  }
+}
+
+GTEST_TEST(MosekTest, TestTrivial2x2SDP) {
+  MosekSolver solver;
+  if (solver.available()) {
+    TestTrivial2x2SDP(solver, 1E-8, /*check_dual=*/true, /*dual_tol=*/1E-8);
+  }
+}
+
+GTEST_TEST(MosekTest, Test1x1with3x3SDP) {
+  MosekSolver solver;
+  if (solver.available()) {
+    Test1x1with3x3SDP(solver, 1E-4, /*check_dual=*/true, /*dual_tol=*/1E-4);
+  }
+}
+
+GTEST_TEST(MosekTest, Test2x2with3x3SDP) {
+  MosekSolver solver;
+  if (solver.available()) {
+    Test2x2with3x3SDP(solver, 1E-3, /*check_dual=*/true, /*dual_tol=*/1E-3);
+  }
+}
+
+GTEST_TEST(MosekTest, TestTrivial1x1LMI) {
+  MosekSolver solver;
+  if (solver.available()) {
+    TestTrivial1x1LMI(solver, 1E-7, /*check_dual=*/true, /*dual_tol=*/1E-7);
+  }
+}
+
+GTEST_TEST(MosekTest, Test2X2LMI) {
+  MosekSolver solver;
+  if (solver.available()) {
+    Test2x2LMI(solver, 1E-7, /*check_dual=*/true, /*dual_tol=*/1E-7);
+  }
+}
+
 GTEST_TEST(MosekTest, LPDualSolution1) {
   MosekSolver solver;
   if (solver.available()) {
@@ -583,7 +668,7 @@ GTEST_TEST(MosekSolver, SocpDualSolution2) {
 GTEST_TEST(MosekTest, SDPDualSolution1) {
   MosekSolver solver;
   if (solver.available()) {
-    TestSDPDualSolution1(solver, 3E-6);
+    TestSDPDualSolution1(solver, 1E-4);
   }
 }
 

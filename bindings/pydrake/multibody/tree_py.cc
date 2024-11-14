@@ -48,6 +48,10 @@ using multibody::SpatialVelocity;
 
 namespace {
 
+// NOLINTNEXTLINE(build/namespaces): Emulate placement in namespace.
+using namespace drake::multibody;
+constexpr auto& doc = pydrake_doc.drake.multibody;
+
 // Negative case for checking T::name().
 // https://stackoverflow.com/a/16000226/7829525
 template <typename T, typename = void>
@@ -92,9 +96,6 @@ void BindMultibodyElementMixin(PyClass* pcls) {
 }
 
 void DoScalarIndependentDefinitions(py::module m) {
-  // NOLINTNEXTLINE(build/namespaces): Emulate placement in namespace.
-  using namespace drake::multibody;
-  constexpr auto& doc = pydrake_doc.drake.multibody;
   // To simplify checking binding coverage, these are defined in the same order
   // as `multibody_tree_indexes.h`.
   BindTypeSafeIndex<FrameIndex>(m, "FrameIndex", doc.FrameIndex.doc);
@@ -182,18 +183,11 @@ void DoScalarIndependentDefinitions(py::module m) {
   }
 }
 
-/**
- * Adds Python bindings for its contents to module `m`, for template `T`.
- * @param m Module.
- * @param T Template.
- */
+// TODO(jwnimmer-tri) This function is just a grab-bag of several classes. We
+// should split it up into smaller pieces.
 template <typename T>
 void DoScalarDependentDefinitions(py::module m, T) {
   py::tuple param = GetPyParam<T>();
-
-  // NOLINTNEXTLINE(build/namespaces): Emulate placement in namespace.
-  using namespace drake::multibody;
-  constexpr auto& doc = pydrake_doc.drake.multibody;
 
   // Frames.
   {
@@ -221,12 +215,18 @@ void DoScalarDependentDefinitions(py::module m, T) {
         .def("GetFixedRotationMatrixInBodyFrame",
             &Class::GetFixedRotationMatrixInBodyFrame,
             cls_doc.GetFixedRotationMatrixInBodyFrame.doc)
-        .def("CalcOffsetPoseInBody", &Class::CalcOffsetPoseInBody,
+        .def("CalcOffsetPoseInBody",
+            overload_cast_explicit<RigidTransform<T>,
+                const systems::Context<T>&, const RigidTransform<T>&>(
+                &Class::CalcOffsetPoseInBody),
             py::arg("context"), py::arg("X_FQ"),
             cls_doc.CalcOffsetPoseInBody.doc)
         .def("CalcOffsetRotationMatrixInBody",
-            &Class::CalcOffsetRotationMatrixInBody, py::arg("context"),
-            py::arg("R_FQ"), cls_doc.CalcOffsetRotationMatrixInBody.doc)
+            overload_cast_explicit<math::RotationMatrix<T>,
+                const systems::Context<T>&, const math::RotationMatrix<T>&>(
+                &Class::CalcOffsetRotationMatrixInBody),
+            py::arg("context"), py::arg("R_FQ"),
+            cls_doc.CalcOffsetRotationMatrixInBody.doc)
         .def("GetFixedOffsetPoseInBody", &Class::GetFixedOffsetPoseInBody,
             py::arg("X_FQ"), cls_doc.GetFixedOffsetPoseInBody.doc)
         .def("GetFixedRotationMatrixInBody",
@@ -344,6 +344,14 @@ void DoScalarDependentDefinitions(py::module m, T) {
             cls_doc.get_mass.doc)
         .def("CalcCenterOfMassInBodyFrame", &Class::CalcCenterOfMassInBodyFrame,
             py::arg("context"), cls_doc.CalcCenterOfMassInBodyFrame.doc)
+        .def("CalcCenterOfMassTranslationalVelocityInWorld",
+            &Class::CalcCenterOfMassTranslationalVelocityInWorld,
+            py::arg("context"),
+            cls_doc.CalcCenterOfMassTranslationalVelocityInWorld.doc)
+        .def("CalcCenterOfMassTranslationalAccelerationInWorld",
+            &Class::CalcCenterOfMassTranslationalAccelerationInWorld,
+            py::arg("context"),
+            cls_doc.CalcCenterOfMassTranslationalAccelerationInWorld.doc)
         .def("CalcSpatialInertiaInBodyFrame",
             &Class::CalcSpatialInertiaInBodyFrame, py::arg("context"),
             cls_doc.CalcSpatialInertiaInBodyFrame.doc)
@@ -465,16 +473,7 @@ void DoScalarDependentDefinitions(py::module m, T) {
         .def("Lock", &Class::Lock, py::arg("context"), cls_doc.Lock.doc)
         .def("Unlock", &Class::Unlock, py::arg("context"), cls_doc.Unlock.doc)
         .def("is_locked", &Class::is_locked, py::arg("context"),
-            cls_doc.is_locked.doc);
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-    cls  // BR
-        .def("damping_vector",
-            WrapDeprecated(
-                cls_doc.damping_vector.doc_deprecated, &Class::damping_vector),
-            cls_doc.damping_vector.doc_deprecated);
-#pragma GCC diagnostic pop
-    cls  // BR
+            cls_doc.is_locked.doc)
         .def("default_damping_vector", &Class::default_damping_vector,
             return_value_policy_for_scalar_type<T>(),
             cls_doc.default_damping_vector.doc)
@@ -495,19 +494,12 @@ void DoScalarDependentDefinitions(py::module m, T) {
     auto cls = DefineTemplateClassWithDefault<Class, Joint<T>>(
         m, "BallRpyJoint", param, cls_doc.doc);
     cls  // BR
+        .def_property_readonly_static(
+            "kTypeName", [](py::object /* self */) { return Class::kTypeName; })
         .def(
             py::init<const string&, const Frame<T>&, const Frame<T>&, double>(),
             py::arg("name"), py::arg("frame_on_parent"),
-            py::arg("frame_on_child"), py::arg("damping") = 0,
-            cls_doc.ctor.doc);
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-    cls  // BR
-        .def("damping",
-            WrapDeprecated(cls_doc.damping.doc_deprecated, &Class::damping),
-            cls_doc.damping.doc_deprecated);
-#pragma GCC diagnostic pop
-    cls  // BR
+            py::arg("frame_on_child"), py::arg("damping") = 0, cls_doc.ctor.doc)
         .def("default_damping", &Class::default_damping,
             cls_doc.default_damping.doc)
         .def("get_angles", &Class::get_angles, py::arg("context"),
@@ -535,19 +527,13 @@ void DoScalarDependentDefinitions(py::module m, T) {
     auto cls = DefineTemplateClassWithDefault<Class, Joint<T>>(
         m, "PlanarJoint", param, cls_doc.doc);
     cls  // BR
+        .def_property_readonly_static(
+            "kTypeName", [](py::object /* self */) { return Class::kTypeName; })
         .def(py::init<const string&, const Frame<T>&, const Frame<T>&,
                  Vector3<double>>(),
             py::arg("name"), py::arg("frame_on_parent"),
             py::arg("frame_on_child"),
-            py::arg("damping") = Vector3<double>::Zero(), cls_doc.ctor.doc);
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-    cls  // BR
-        .def("damping",
-            WrapDeprecated(cls_doc.damping.doc_deprecated, &Class::damping),
-            cls_doc.damping.doc_deprecated);
-#pragma GCC diagnostic pop
-    cls  // BR
+            py::arg("damping") = Vector3<double>::Zero(), cls_doc.ctor.doc)
         .def("default_damping", &Class::default_damping,
             cls_doc.default_damping.doc)
         .def("get_translation", &Class::get_translation, py::arg("context"),
@@ -592,6 +578,8 @@ void DoScalarDependentDefinitions(py::module m, T) {
     auto cls = DefineTemplateClassWithDefault<Class, Joint<T>>(
         m, "PrismaticJoint", param, cls_doc.doc);
     cls  // BR
+        .def_property_readonly_static(
+            "kTypeName", [](py::object /* self */) { return Class::kTypeName; })
         .def(py::init<const string&, const Frame<T>&, const Frame<T>&,
                  const Vector3<double>&, double, double, double>(),
             py::arg("name"), py::arg("frame_on_parent"),
@@ -602,15 +590,7 @@ void DoScalarDependentDefinitions(py::module m, T) {
                 std::numeric_limits<double>::infinity(),
             py::arg("damping") = 0, cls_doc.ctor.doc)
         .def("translation_axis", &Class::translation_axis,
-            cls_doc.translation_axis.doc);
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-    cls  // BR
-        .def("damping",
-            WrapDeprecated(cls_doc.damping.doc_deprecated, &Class::damping),
-            cls_doc.damping.doc_deprecated);
-#pragma GCC diagnostic pop
-    cls  // BR
+            cls_doc.translation_axis.doc)
         .def("default_damping", &Class::default_damping,
             cls_doc.default_damping.doc)
         .def("set_default_damping", &Class::set_default_damping,
@@ -656,24 +636,13 @@ void DoScalarDependentDefinitions(py::module m, T) {
     auto cls = DefineTemplateClassWithDefault<Class, Joint<T>>(
         m, "QuaternionFloatingJoint", param, cls_doc.doc);
     cls  // BR
+        .def_property_readonly_static(
+            "kTypeName", [](py::object /* self */) { return Class::kTypeName; })
         .def(py::init<const string&, const Frame<T>&, const Frame<T>&, double,
                  double>(),
             py::arg("name"), py::arg("frame_on_parent"),
             py::arg("frame_on_child"), py::arg("angular_damping") = 0,
-            py::arg("translational_damping") = 0, cls_doc.ctor.doc);
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-    cls  // BR
-        .def("angular_damping",
-            WrapDeprecated(cls_doc.angular_damping.doc_deprecated,
-                &Class::angular_damping),
-            cls_doc.angular_damping.doc_deprecated)
-        .def("translational_damping",
-            WrapDeprecated(cls_doc.translational_damping.doc_deprecated,
-                &Class::translational_damping),
-            cls_doc.translational_damping.doc_deprecated);
-#pragma GCC diagnostic pop
-    cls  // BR
+            py::arg("translational_damping") = 0, cls_doc.ctor.doc)
         .def("default_angular_damping", &Class::default_angular_damping,
             cls_doc.default_angular_damping.doc)
         .def("default_translational_damping",
@@ -681,32 +650,31 @@ void DoScalarDependentDefinitions(py::module m, T) {
             cls_doc.default_translational_damping.doc)
         .def("get_quaternion", &Class::get_quaternion, py::arg("context"),
             cls_doc.get_quaternion.doc)
-        .def("get_position", &Class::get_position, py::arg("context"),
-            cls_doc.get_position.doc)
-        .def("get_pose", &Class::get_pose, py::arg("context"),
-            cls_doc.get_pose.doc)
+        .def("get_translation", &Class::get_translation, py::arg("context"),
+            cls_doc.get_translation.doc)
+        .def(
+            "GetPose", &Class::GetPose, py::arg("context"), cls_doc.GetPose.doc)
         .def("get_angular_velocity", &Class::get_angular_velocity,
             py::arg("context"), cls_doc.get_angular_velocity.doc)
         .def("get_translational_velocity", &Class::get_translational_velocity,
             py::arg("context"), cls_doc.get_translational_velocity.doc)
-        .def("set_quaternion", &Class::set_quaternion, py::arg("context"),
-            py::arg("q_FM"), cls_doc.set_quaternion.doc)
-        .def("SetFromRotationMatrix", &Class::SetFromRotationMatrix,
-            py::arg("context"), py::arg("R_FM"),
-            cls_doc.SetFromRotationMatrix.doc)
-        .def("set_position", &Class::set_position, py::arg("context"),
-            py::arg("p_FM"), cls_doc.set_position.doc)
-        .def("set_pose", &Class::set_pose, py::arg("context"), py::arg("X_FM"),
-            cls_doc.set_pose.doc)
+        .def("SetQuaternion", &Class::SetQuaternion, py::arg("context"),
+            py::arg("q_FM"), cls_doc.SetQuaternion.doc)
+        .def("SetOrientation", &Class::SetOrientation, py::arg("context"),
+            py::arg("R"), cls_doc.SetOrientation.doc)
+        .def("SetTranslation", &Class::SetTranslation, py::arg("context"),
+            py::arg("p_FM"), cls_doc.SetTranslation.doc)
+        .def("SetPose", &Class::SetPose, py::arg("context"), py::arg("X_FM"),
+            cls_doc.SetPose.doc)
         .def("set_angular_velocity", &Class::set_angular_velocity,
             py::arg("context"), py::arg("w_FM"),
             cls_doc.set_angular_velocity.doc)
         .def("set_translational_velocity", &Class::set_translational_velocity,
             py::arg("context"), py::arg("v_FM"),
             cls_doc.set_translational_velocity.doc)
-        .def("set_random_position_distribution",
-            &Class::set_random_position_distribution, py::arg("p_FM"),
-            cls_doc.set_random_position_distribution.doc)
+        .def("set_random_translation_distribution",
+            &Class::set_random_translation_distribution, py::arg("translation"),
+            cls_doc.set_random_translation_distribution.doc)
         .def("set_random_quaternion_distribution",
             &Class::set_random_quaternion_distribution, py::arg("q_FM"),
             cls_doc.set_random_quaternion_distribution.doc)
@@ -715,14 +683,12 @@ void DoScalarDependentDefinitions(py::module m, T) {
             cls_doc.set_random_quaternion_distribution_to_uniform.doc)
         .def("get_default_quaternion", &Class::get_default_quaternion,
             cls_doc.get_default_quaternion.doc)
-        .def("get_default_position", &Class::get_default_position,
-            cls_doc.get_default_position.doc)
-        .def("get_default_pose", &Class::get_default_pose,
-            cls_doc.get_default_pose.doc)
+        .def("get_default_translation", &Class::get_default_translation,
+            cls_doc.get_default_translation.doc)
         .def("set_default_quaternion", &Class::set_default_quaternion,
             py::arg("q_FM"), cls_doc.set_default_quaternion.doc)
-        .def("set_default_position", &Class::set_default_position,
-            py::arg("p_FM"), cls_doc.set_default_position.doc);
+        .def("set_default_translation", &Class::set_default_translation,
+            py::arg("translation"), cls_doc.set_default_translation.doc);
   }
 
   // RevoluteJoint
@@ -732,6 +698,8 @@ void DoScalarDependentDefinitions(py::module m, T) {
     auto cls = DefineTemplateClassWithDefault<Class, Joint<T>>(
         m, "RevoluteJoint", param, cls_doc.doc);
     cls  // BR
+        .def_property_readonly_static(
+            "kTypeName", [](py::object /* self */) { return Class::kTypeName; })
         .def(py::init<const string&, const Frame<T>&, const Frame<T>&,
                  const Vector3<double>&, double>(),
             py::arg("name"), py::arg("frame_on_parent"),
@@ -743,15 +711,7 @@ void DoScalarDependentDefinitions(py::module m, T) {
             py::arg("frame_on_child"), py::arg("axis"),
             py::arg("pos_lower_limit"), py::arg("pos_upper_limit"),
             py::arg("damping") = 0.0, cls_doc.ctor.doc_7args)
-        .def("revolute_axis", &Class::revolute_axis, cls_doc.revolute_axis.doc);
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-    cls  // BR
-        .def("damping",
-            WrapDeprecated(cls_doc.damping.doc_deprecated, &Class::damping),
-            cls_doc.damping.doc_deprecated);
-#pragma GCC diagnostic pop
-    cls  // BR
+        .def("revolute_axis", &Class::revolute_axis, cls_doc.revolute_axis.doc)
         .def("default_damping", &Class::default_damping,
             cls_doc.default_damping.doc)
         .def("set_default_damping", &Class::set_default_damping,
@@ -796,24 +756,13 @@ void DoScalarDependentDefinitions(py::module m, T) {
     auto cls = DefineTemplateClassWithDefault<Class, Joint<T>>(
         m, "RpyFloatingJoint", param, cls_doc.doc);
     cls  // BR
+        .def_property_readonly_static(
+            "kTypeName", [](py::object /* self */) { return Class::kTypeName; })
         .def(py::init<const string&, const Frame<T>&, const Frame<T>&, double,
                  double>(),
             py::arg("name"), py::arg("frame_on_parent"),
             py::arg("frame_on_child"), py::arg("angular_damping") = 0,
-            py::arg("translational_damping") = 0, cls_doc.ctor.doc);
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-    cls  // BR
-        .def("angular_damping",
-            WrapDeprecated(cls_doc.angular_damping.doc_deprecated,
-                &Class::angular_damping),
-            cls_doc.angular_damping.doc_deprecated)
-        .def("translational_damping",
-            WrapDeprecated(cls_doc.translational_damping.doc_deprecated,
-                &Class::translational_damping),
-            cls_doc.translational_damping.doc_deprecated);
-#pragma GCC diagnostic pop
-    cls  // BR
+            py::arg("translational_damping") = 0, cls_doc.ctor.doc)
         .def("default_angular_damping", &Class::default_angular_damping,
             cls_doc.default_angular_damping.doc)
         .def("default_translational_damping",
@@ -827,8 +776,8 @@ void DoScalarDependentDefinitions(py::module m, T) {
             py::arg("R_FM"), cls_doc.SetOrientation.doc)
         .def("get_translation", &Class::get_translation, py::arg("context"),
             cls_doc.get_translation.doc)
-        .def("set_translation", &Class::set_translation, py::arg("context"),
-            py::arg("p_FM"), cls_doc.set_translation.doc)
+        .def("SetTranslation", &Class::SetTranslation, py::arg("context"),
+            py::arg("p_FM"), cls_doc.SetTranslation.doc)
         .def(
             "GetPose", &Class::GetPose, py::arg("context"), cls_doc.GetPose.doc)
         .def("SetPose", &Class::SetPose, py::arg("context"), py::arg("X_FM"),
@@ -866,6 +815,8 @@ void DoScalarDependentDefinitions(py::module m, T) {
     auto cls = DefineTemplateClassWithDefault<Class, Joint<T>>(
         m, "ScrewJoint", param, cls_doc.doc);
     cls  // BR
+        .def_property_readonly_static(
+            "kTypeName", [](py::object /* self */) { return Class::kTypeName; })
         .def(py::init<const string&, const Frame<T>&, const Frame<T>&, double,
                  double>(),
             py::arg("name"), py::arg("frame_on_parent"),
@@ -876,15 +827,7 @@ void DoScalarDependentDefinitions(py::module m, T) {
             py::arg("name"), py::arg("frame_on_parent"),
             py::arg("frame_on_child"), py::arg("axis"), py::arg("screw_pitch"),
             py::arg("damping"), cls_doc.ctor.doc_6args)
-        .def("screw_pitch", &Class::screw_pitch, cls_doc.screw_pitch.doc);
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-    cls  // BR
-        .def("damping",
-            WrapDeprecated(cls_doc.damping.doc_deprecated, &Class::damping),
-            cls_doc.damping.doc_deprecated);
-#pragma GCC diagnostic pop
-    cls  // BR
+        .def("screw_pitch", &Class::screw_pitch, cls_doc.screw_pitch.doc)
         .def("default_damping", &Class::default_damping,
             cls_doc.default_damping.doc)
         .def("get_default_translation", &Class::get_default_translation,
@@ -927,19 +870,12 @@ void DoScalarDependentDefinitions(py::module m, T) {
     auto cls = DefineTemplateClassWithDefault<Class, Joint<T>>(
         m, "UniversalJoint", param, cls_doc.doc);
     cls  // BR
+        .def_property_readonly_static(
+            "kTypeName", [](py::object /* self */) { return Class::kTypeName; })
         .def(
             py::init<const string&, const Frame<T>&, const Frame<T>&, double>(),
             py::arg("name"), py::arg("frame_on_parent"),
-            py::arg("frame_on_child"), py::arg("damping") = 0,
-            cls_doc.ctor.doc);
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-    cls  // BR
-        .def("damping",
-            WrapDeprecated(cls_doc.damping.doc_deprecated, &Class::damping),
-            cls_doc.damping.doc_deprecated);
-#pragma GCC diagnostic pop
-    cls  // BR
+            py::arg("frame_on_child"), py::arg("damping") = 0, cls_doc.ctor.doc)
         .def("default_damping", &Class::default_damping,
             cls_doc.default_damping.doc)
         .def("get_angles", &Class::get_angles, py::arg("context"),
@@ -966,6 +902,8 @@ void DoScalarDependentDefinitions(py::module m, T) {
     auto cls = DefineTemplateClassWithDefault<Class, Joint<T>>(
         m, "WeldJoint", param, cls_doc.doc);
     cls  // BR
+        .def_property_readonly_static(
+            "kTypeName", [](py::object /* self */) { return Class::kTypeName; })
         .def(py::init<const string&, const Frame<T>&, const Frame<T>&,
                  const RigidTransform<double>&>(),
             py::arg("name"), py::arg("frame_on_parent_F"),
@@ -1186,8 +1124,12 @@ void DoScalarDependentDefinitions(py::module m, T) {
             &Class::CalcBushingSpatialForceOnFrameC, py::arg("context"),
             cls_doc.CalcBushingSpatialForceOnFrameC.doc);
   }
+  // NOLINTNEXTLINE(readability/fn_size)
+}
 
-  // MultibodyForces
+template <typename T>
+void DefineMultibodyForces(py::module m, T) {
+  py::tuple param = GetPyParam<T>();
   {
     using Class = MultibodyForces<T>;
     constexpr auto& cls_doc = doc.MultibodyForces;
@@ -1219,7 +1161,6 @@ void DoScalarDependentDefinitions(py::module m, T) {
             cls_doc.AddInForces.doc);
     DefCopyAndDeepCopy(&cls);
   }
-  // NOLINTNEXTLINE(readability/fn_size)
 }
 }  // namespace
 
@@ -1231,10 +1172,15 @@ PYBIND11_MODULE(tree, m) {
 
   py::module::import("pydrake.common.eigen_geometry");
   py::module::import("pydrake.multibody.math");
+  py::module::import("pydrake.systems.framework");
 
   internal::DefineTreeInertia(m);
   DoScalarIndependentDefinitions(m);
-  type_visit([m](auto dummy) { DoScalarDependentDefinitions(m, dummy); },
+  type_visit(
+      [m](auto dummy) {
+        DefineMultibodyForces(m, dummy);
+        DoScalarDependentDefinitions(m, dummy);
+      },
       CommonScalarPack{});
 
   ExecuteExtraPythonCode(m);

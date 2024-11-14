@@ -1,7 +1,11 @@
 #include "drake/solvers/clarabel_solver.h"
 
+#include <fstream>
+
+#include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
+#include "drake/common/temp_directory.h"
 #include "drake/common/test_utilities/eigen_matrix_compare.h"
 #include "drake/common/test_utilities/expect_throws_message.h"
 #include "drake/solvers/mathematical_program.h"
@@ -17,7 +21,11 @@
 namespace drake {
 namespace solvers {
 namespace test {
+
 const double kTol = 1E-5;
+
+using testing::HasSubstr;
+
 GTEST_TEST(LinearProgramTest, TestGeneralLP) {
   // Test a linear program with only equality constraint.
   // min x(0) + 2 * x(1)
@@ -241,6 +249,13 @@ GTEST_TEST(QPtest, TestUnitBallExample) {
   }
 }
 
+GTEST_TEST(QPtest, TestQuadraticCostVariableOrder) {
+  ClarabelSolver solver;
+  if (solver.available()) {
+    TestQuadraticCostVariableOrder(solver);
+  }
+}
+
 GTEST_TEST(TestDuplicatedVariableQuadraticProgram, Test) {
   ClarabelSolver solver;
   if (solver.available()) {
@@ -327,6 +342,11 @@ GTEST_TEST(TestSOCP, TestSocpDuplicatedVariable2) {
   TestSocpDuplicatedVariable2(solver, std::nullopt, 1E-6);
 }
 
+GTEST_TEST(TestSOCP, TestSocpDuplicatedVariable3) {
+  ClarabelSolver solver;
+  TestSocpDuplicatedVariable3(solver, std::nullopt, 1E-4);
+}
+
 GTEST_TEST(TestL2NormCost, ShortestDistanceToThreePoints) {
   ClarabelSolver solver;
   ShortestDistanceToThreePoints tester{};
@@ -343,6 +363,97 @@ GTEST_TEST(TestL2NormCost, ShortestDistanceFromPlaneToTwoPoints) {
   ClarabelSolver solver;
   ShortestDistanceFromPlaneToTwoPoints tester{};
   tester.CheckSolution(solver, std::nullopt, 5E-4);
+}
+
+GTEST_TEST(TestSemidefiniteProgram, TrivialSDP) {
+  ClarabelSolver solver;
+  if (solver.available()) {
+    TestTrivialSDP(solver, kTol);
+  }
+}
+
+GTEST_TEST(TestSemidefiniteProgram, CommonLyapunov) {
+  ClarabelSolver solver;
+  if (solver.available()) {
+    FindCommonLyapunov(solver, {}, kTol);
+  }
+}
+
+GTEST_TEST(TestSemidefiniteProgram, OuterEllipsoid) {
+  ClarabelSolver solver;
+  if (solver.available()) {
+    FindOuterEllipsoid(solver, {}, kTol);
+  }
+}
+
+GTEST_TEST(TestSemidefiniteProgram, EigenvalueProblem) {
+  ClarabelSolver solver;
+  if (solver.available()) {
+    SolveEigenvalueProblem(solver, {}, kTol, /*check_dual=*/false);
+  }
+}
+
+GTEST_TEST(TestSemidefiniteProgram, SolveSDPwithSecondOrderConeExample1) {
+  ClarabelSolver solver;
+  if (solver.available()) {
+    SolveSDPwithSecondOrderConeExample1(solver, kTol);
+  }
+}
+
+GTEST_TEST(TestSemidefiniteProgram, SolveSDPwithSecondOrderConeExample2) {
+  ClarabelSolver solver;
+  if (solver.available()) {
+    SolveSDPwithSecondOrderConeExample2(solver, kTol);
+  }
+}
+
+GTEST_TEST(TestSemidefiniteProgram, SolveSDPwithOverlappingVariables) {
+  ClarabelSolver solver;
+  if (solver.available()) {
+    SolveSDPwithOverlappingVariables(solver, kTol);
+  }
+}
+
+GTEST_TEST(TestSemidefiniteProgram, TestTrivial1x1SDP) {
+  ClarabelSolver solver;
+  if (solver.available()) {
+    TestTrivial1x1SDP(solver, 1E-5, /*check_dual=*/false, /*dual_tol=*/1E-5);
+  }
+}
+
+GTEST_TEST(TestSemidefiniteProgram, TestTrivial2x2SDP) {
+  ClarabelSolver solver;
+  if (solver.available()) {
+    TestTrivial2x2SDP(solver, 1E-5, /*check_dual=*/false, /*dual_tol=*/1E-5);
+  }
+}
+
+GTEST_TEST(TestSemidefiniteProgram, Test1x1with3x3SDP) {
+  ClarabelSolver solver;
+  if (solver.available()) {
+    Test1x1with3x3SDP(solver, 1E-4, /*check_dual=*/false, /*dual_tol=*/1E-4);
+  }
+}
+
+GTEST_TEST(TestSemidefiniteProgram, Test2x2with3x3SDP) {
+  ClarabelSolver solver;
+  if (solver.available()) {
+    Test2x2with3x3SDP(solver, 1E-3, /*check_dual=*/false, /*dual_tol*/ 1E-2);
+  }
+}
+
+GTEST_TEST(TestSemidefiniteProgram, TestTrivial1x1LMI) {
+  ClarabelSolver solver;
+  if (solver.available()) {
+    TestTrivial1x1LMI(solver, 1E-5, /*check_dual=*/false, /*dual_tol=*/1E-7);
+  }
+}
+
+GTEST_TEST(TestSemidefiniteProgram, Test2X2LMI) {
+  ClarabelSolver solver;
+  if (solver.available()) {
+    Test2x2LMI(solver, 1E-7, /*check_dual=*/false, /*dual_tol=*/1E-7);
+  }
 }
 
 GTEST_TEST(TestExponentialConeProgram, ExponentialConeTrivialExample) {
@@ -369,11 +480,12 @@ GTEST_TEST(TestExponentialConeProgram, MinimalEllipsoidConveringPoints) {
 }
 
 GTEST_TEST(TestExponentialConeProgram, MatrixLogDeterminantLower) {
-  ClarabelSolver scs_solver;
-  if (scs_solver.available()) {
-    MatrixLogDeterminantLower(scs_solver, kTol);
+  ClarabelSolver solver;
+  if (solver.available()) {
+    MatrixLogDeterminantLower(solver, kTol);
   }
 }
+
 GTEST_TEST(TestSos, UnivariateQuarticSos) {
   UnivariateQuarticSos dut;
   ClarabelSolver solver;
@@ -435,6 +547,78 @@ GTEST_TEST(TestOptions, SetMaxIter) {
   }
 }
 
+GTEST_TEST(TestOptions, StandaloneReproduction) {
+  MathematicalProgram prog;
+  const auto x = prog.NewContinuousVariables<3>("x");
+  prog.AddLinearEqualityConstraint(x(0) + x(1) == 1);
+  prog.AddLinearConstraint(x(0) + x(1) + x(2) >= 0);
+  prog.AddLorentzConeConstraint(Vector2<symbolic::Expression>(x(0), x(1)));
+  prog.AddExponentialConeConstraint(
+      Vector3<symbolic::Expression>(x(2), x(0), x(1)));
+  const auto Y = prog.NewSymmetricContinuousVariables<2>("Y");
+  prog.AddPositiveSemidefiniteConstraint(Y);
+
+  ClarabelSolver solver;
+  if (solver.available()) {
+    SolverOptions solver_options;
+    const std::string repro_file_name = temp_directory() + "/reproduction.py";
+    solver_options.SetOption(
+        CommonSolverOption::kStandaloneReproductionFileName, repro_file_name);
+    solver.Solve(prog, std::nullopt, solver_options);
+
+    // Read in the reproduction file.
+    std::ifstream input_stream(repro_file_name);
+    ASSERT_TRUE(input_stream.is_open());
+    std::stringstream buffer;
+    buffer << input_stream.rdbuf();
+    std::string repro_str = buffer.str();
+
+    EXPECT_THAT(repro_str, HasSubstr("import clarabel"));
+    EXPECT_THAT(repro_str, HasSubstr("ZeroConeT"));
+    EXPECT_THAT(repro_str, HasSubstr("NonnegativeConeT"));
+    EXPECT_THAT(repro_str, HasSubstr("SecondOrderConeT"));
+    EXPECT_THAT(repro_str, HasSubstr("PSDTriangleConeT"));
+    EXPECT_THAT(repro_str, HasSubstr("ExponentialConeT"));
+    EXPECT_THAT(repro_str, HasSubstr("solve"));
+  }
+}
+
+// Ensure that when we have no linear constraints, we do not generate programs
+// with empty Zero nor Nonnegative cones.
+GTEST_TEST(TestOptions, EmptyCones) {
+  MathematicalProgram prog;
+  const auto x = prog.NewContinuousVariables<3>("x");
+  prog.AddLorentzConeConstraint(Vector2<symbolic::Expression>(x(0), x(1)));
+  prog.AddExponentialConeConstraint(
+      Vector3<symbolic::Expression>(x(2), x(0), x(1)));
+  const auto Y = prog.NewSymmetricContinuousVariables<2>("Y");
+  prog.AddPositiveSemidefiniteConstraint(Y);
+
+  ClarabelSolver solver;
+  if (solver.available()) {
+    SolverOptions solver_options;
+    const std::string repro_file_name = temp_directory() + "/reproduction.py";
+    solver_options.SetOption(
+        CommonSolverOption::kStandaloneReproductionFileName, repro_file_name);
+    solver.Solve(prog, std::nullopt, solver_options);
+
+    // Read in the reproduction file.
+    std::ifstream input_stream(repro_file_name);
+    ASSERT_TRUE(input_stream.is_open());
+    std::stringstream buffer;
+    buffer << input_stream.rdbuf();
+    std::string repro_str = buffer.str();
+
+    EXPECT_THAT(repro_str, HasSubstr("import clarabel"));
+    EXPECT_THAT(repro_str, Not(HasSubstr("ZeroConeT")));
+    EXPECT_THAT(repro_str, Not(HasSubstr("NonnegativeConeT")));
+    EXPECT_THAT(repro_str, HasSubstr("SecondOrderConeT"));
+    EXPECT_THAT(repro_str, HasSubstr("PSDTriangleConeT"));
+    EXPECT_THAT(repro_str, HasSubstr("ExponentialConeT"));
+    EXPECT_THAT(repro_str, HasSubstr("solve"));
+  }
+}
+
 GTEST_TEST(TestOptions, unrecognized) {
   SimpleSos1 dut;
   ClarabelSolver solver;
@@ -443,7 +627,7 @@ GTEST_TEST(TestOptions, unrecognized) {
     solver_options.SetOption(solver.id(), "bad_unrecognized", 1);
     DRAKE_EXPECT_THROWS_MESSAGE(
         solver.Solve(dut.prog(), std::nullopt, solver_options),
-        ".*unrecognized solver options bad_unrecognized.*");
+        ".*not recognized.*bad_unrecognized.*");
   }
 }
 

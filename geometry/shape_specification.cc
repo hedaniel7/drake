@@ -4,6 +4,8 @@
 #include <filesystem>
 #include <limits>
 #include <memory>
+#include <utility>
+#include <vector>
 
 #include <fmt/format.h>
 
@@ -13,20 +15,12 @@
 #include "drake/geometry/proximity/make_convex_hull_mesh_impl.h"
 #include "drake/geometry/proximity/meshing_utilities.h"
 #include "drake/geometry/proximity/obj_to_surface_mesh.h"
+#include "drake/geometry/proximity/polygon_to_triangle_mesh.h"
 #include "drake/geometry/proximity/triangle_surface_mesh.h"
 
 namespace drake {
 namespace geometry {
 namespace {
-
-std::string GetExtensionLower(const std::string& filename) {
-  std::filesystem::path file_path(filename);
-  std::string ext = file_path.extension();
-  std::transform(ext.begin(), ext.end(), ext.begin(), [](unsigned char c) {
-    return std::tolower(c);
-  });
-  return ext;
-}
 
 // Computes a convex hull and assigns it to the given shared pointer in a
 // thread-safe manner. Only does work if the shared_ptr is null (i.e., there is
@@ -35,15 +29,37 @@ std::string GetExtensionLower(const std::string& filename) {
 // shape_specification_thread_test.cc.
 void ComputeConvexHullAsNecessary(
     std::shared_ptr<PolygonSurfaceMesh<double>>* hull_ptr,
-    std::string_view filename, double scale) {
+    const MeshSource& mesh_source, double scale) {
   std::shared_ptr<PolygonSurfaceMesh<double>> check =
       std::atomic_load(hull_ptr);
   if (check == nullptr) {
     // Note: This approach means that multiple threads *may* redundantly compute
     // the convex hull; but only the first one will set the hull.
     auto new_hull = std::make_shared<PolygonSurfaceMesh<double>>(
-        internal::MakeConvexHull(filename, scale));
+        internal::MakeConvexHull(mesh_source, scale));
     std::atomic_compare_exchange_strong(hull_ptr, &check, new_hull);
+  }
+}
+
+// Support for Mesh and Convex do_to_string(). It does the hard work of
+// converting the MeshSource into the appropriate parameter name and value
+// representation and then packages it into the full Mesh string representation.
+std::string MeshToString(std::string_view class_name, const MeshSource& source,
+                         double scale) {
+  const std::string mesh_parameter = [&source]() {
+    if (source.is_path()) {
+      return fmt::format("filename='{}'", source.path().string());
+    } else {
+      return fmt::format("mesh_data={}", source.in_memory());
+    }
+  }();
+  return fmt::format("{}({}, scale={})", class_name, mesh_parameter, scale);
+}
+
+void ThrowForBadScale(double scale, std::string_view source) {
+  if (std::abs(scale) < 1e-8) {
+    throw std::logic_error(
+        fmt::format("{} |scale| cannot be < 1e-8, given {}.", source, scale));
   }
 }
 
@@ -103,22 +119,37 @@ std::string Capsule::do_to_string() const {
   return fmt::format("Capsule(radius={}, length={})", radius(), length());
 }
 
-Convex::Convex(const std::string& filename, double scale)
-    : filename_(std::filesystem::absolute(filename)),
-      extension_(GetExtensionLower(filename_)),
-      scale_(scale) {
-  if (std::abs(scale) < 1e-8) {
-    throw std::logic_error("Convex |scale| cannot be < 1e-8.");
+Convex::Convex(const std::filesystem::path& filename, double scale)
+    : Convex(MeshSource(std::filesystem::absolute(filename)), scale) {}
+
+Convex::Convex(InMemoryMesh mesh_data, double scale)
+    : Convex(MeshSource(std::move(mesh_data)), scale) {}
+
+Convex::Convex(MeshSource source, double scale)
+    : source_(std::move(source)), scale_(scale) {
+  // Note: We don't validate extensions because there's a possibility that a
+  // mesh of unsupported type is used, but only processed by client code.
+  ThrowForBadScale(scale, "Convex");
+}
+
+std::string Convex::filename() const {
+  if (source_.is_path()) {
+    return source_.path().string();
   }
+  throw std::runtime_error(
+      fmt::format("Convex::filename() cannot be called when constructed on "
+                  "in-memory mesh data: '{}'. Call Convex::source().path() "
+                  "instead.",
+                  source_.in_memory().mesh_file.filename_hint()));
 }
 
 const PolygonSurfaceMesh<double>& Convex::GetConvexHull() const {
-  ComputeConvexHullAsNecessary(&hull_, filename_, scale_);
+  ComputeConvexHullAsNecessary(&hull_, source_, scale_);
   return *hull_;
 }
 
 std::string Convex::do_to_string() const {
-  return fmt::format("Convex(filename='{}', scale={})", filename(), scale());
+  return MeshToString(type_name(), source(), scale());
 }
 
 Cylinder::Cylinder(double radius, double length)
@@ -191,22 +222,37 @@ std::string HalfSpace::do_to_string() const {
   return "HalfSpace()";
 }
 
-Mesh::Mesh(const std::string& filename, double scale)
-    : filename_(std::filesystem::absolute(filename)),
-      extension_(GetExtensionLower(filename_)),
-      scale_(scale) {
-  if (std::abs(scale) < 1e-8) {
-    throw std::logic_error("Mesh |scale| cannot be < 1e-8.");
+Mesh::Mesh(const std::filesystem::path& filename, double scale)
+    : Mesh(MeshSource(std::filesystem::absolute(filename)), scale) {}
+
+Mesh::Mesh(InMemoryMesh mesh_data, double scale)
+    : Mesh(MeshSource(std::move(mesh_data)), scale) {}
+
+Mesh::Mesh(MeshSource source, double scale)
+    : source_(std::move(source)), scale_(scale) {
+  // Note: We don't validate extensions because there's a possibility that a
+  // mesh of unsupported type is used, but only processed by client code.
+  ThrowForBadScale(scale, "Mesh");
+}
+
+std::string Mesh::filename() const {
+  if (source_.is_path()) {
+    return source_.path().string();
   }
+  throw std::runtime_error(
+      fmt::format("Mesh::filename() cannot be called when constructed on "
+                  "in-memory mesh data: '{}'. Call Mesh::source().path() "
+                  "instead.",
+                  source_.in_memory().mesh_file.filename_hint()));
 }
 
 const PolygonSurfaceMesh<double>& Mesh::GetConvexHull() const {
-  ComputeConvexHullAsNecessary(&hull_, filename_, scale_);
+  ComputeConvexHullAsNecessary(&hull_, source_, scale_);
   return *hull_;
 }
 
 std::string Mesh::do_to_string() const {
-  return fmt::format("Mesh(filename='{}', scale={})", filename(), scale());
+  return MeshToString(type_name(), source(), scale());
 }
 
 MeshcatCone::MeshcatCone(double height, double a, double b)
@@ -284,42 +330,19 @@ void ShapeReifier::ThrowUnsupportedGeometry(const std::string& shape_name) {
                                        NiceTypeName::Get(*this), shape_name));
 }
 
-ShapeName::ShapeName(const Shape& shape) {
-  shape.Reify(this);
-}
-
-ShapeName::~ShapeName() = default;
-
-void ShapeName::DefaultImplementGeometry(const Shape& shape) {
-  string_ = shape.type_name();
-}
-
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-std::ostream& operator<<(std::ostream& out, const ShapeName& name) {
-  out << name.name();
-  return out;
-}
-#pragma GCC diagnostic pop
-
 namespace {
 
-template <class MeshType>
-double CalcMeshVolumeFromFile(const MeshType& mesh) {
-  std::string extension = std::filesystem::path(mesh.filename()).extension();
-  std::transform(extension.begin(), extension.end(), extension.begin(),
-                 [](unsigned char c) {
-                   return std::tolower(c);
-                 });
+double CalcMeshVolume(const Mesh& mesh) {
   // TODO(russt): Support .vtk files.
-  if (extension != ".obj") {
+  const MeshSource& mesh_source = mesh.source();
+  if (mesh_source.extension() != ".obj") {
     throw std::runtime_error(fmt::format(
         "CalcVolume currently only supports .obj files for mesh geometries; "
-        "but the volume of {} was requested.",
-        mesh.filename()));
+        "but the volume of '{}' was requested.",
+        mesh_source.description()));
   }
   TriangleSurfaceMesh<double> surface_mesh =
-      ReadObjToTriangleSurfaceMesh(mesh.filename(), mesh.scale());
+      ReadObjToTriangleSurfaceMesh(mesh_source, mesh.scale());
   return internal::CalcEnclosedVolume(surface_mesh);
 }
 
@@ -334,8 +357,9 @@ double CalcVolume(const Shape& shape) {
         return M_PI * std::pow(capsule.radius(), 2) * capsule.length() +
                4.0 / 3.0 * M_PI * std::pow(capsule.radius(), 3);
       },
-      [](const Convex& mesh) {
-        return CalcMeshVolumeFromFile(mesh);
+      [](const Convex& convex) {
+        return internal::CalcEnclosedVolume(
+            internal::MakeTriangleFromPolygonMesh(convex.GetConvexHull()));
       },
       [](const Cylinder& cylinder) {
         return M_PI * std::pow(cylinder.radius(), 2) * cylinder.length();
@@ -347,7 +371,7 @@ double CalcVolume(const Shape& shape) {
         return std::numeric_limits<double>::infinity();
       },
       [](const Mesh& mesh) {
-        return CalcMeshVolumeFromFile(mesh);
+        return CalcMeshVolume(mesh);
       },
       [](const MeshcatCone& cone) {
         return 1.0 / 3.0 * M_PI * cone.a() * cone.b() * cone.height();

@@ -79,7 +79,7 @@ endif()
 
 # The version passed to find_package(Bazel) should match the
 # minimum_bazel_version value in the call to versions.check() in WORKSPACE.
-set(MINIMUM_BAZEL_VERSION 5.1)
+set(MINIMUM_BAZEL_VERSION 7.1)
 find_package(Bazel ${MINIMUM_BAZEL_VERSION} MODULE)
 if(NOT Bazel_FOUND)
   set(Bazel_EXECUTABLE "${PROJECT_SOURCE_DIR}/third_party/com_github_bazelbuild_bazelisk/bazelisk.py")
@@ -101,7 +101,7 @@ endif()
 # The minimum compiler versions should match those listed in both
 # doc/_pages/from_source.md and tools/workspace/cc/repository.bzl.
 set(MINIMUM_APPLE_CLANG_VERSION 14)
-set(MINIMUM_CLANG_VERSION 14)
+set(MINIMUM_CLANG_VERSION 15)
 set(MINIMUM_GNU_VERSION 11)
 
 if(CMAKE_C_COMPILER_ID STREQUAL AppleClang)
@@ -201,7 +201,7 @@ if(APPLE)
   set(SUPPORTED_PYTHON_VERSION 3.12)
 else()
   if(UNIX_DISTRIBUTION_CODENAME STREQUAL noble)
-    set(SUPPORTED_PYTHON_VERSION 3.11)
+    set(SUPPORTED_PYTHON_VERSION 3.12)
   else()  # UNIX_DISTRIBUTION_CODENAME := jammy
     set(SUPPORTED_PYTHON_VERSION 3.10)
   endif()
@@ -260,20 +260,6 @@ if(NOT PYTHON_VERSION_MAJOR_MINOR VERSION_EQUAL SUPPORTED_PYTHON_VERSION)
     "You may experience compatibility problems that are outside the scope of "
     "Drake's continuous integration test suites."
   )
-endif()
-
-if(CMAKE_COLOR_MAKEFILE)
-  set(BAZEL_COLOR yes)
-else()
-  set(BAZEL_COLOR no)
-endif()
-
-if(CMAKE_VERBOSE_MAKEFILE)
-  set(BAZEL_SUBCOMMANDS yes)
-  set(BAZEL_ANNOUNCE_RC yes)
-else()
-  set(BAZEL_SUBCOMMANDS no)
-  set(BAZEL_ANNOUNCE_RC no)
 endif()
 
 set(BAZEL_REPO_ENV)
@@ -520,10 +506,6 @@ endif()
 
 set(BAZEL_INSTALL_ARGS "\${CMAKE_INSTALL_PREFIX}")
 
-if(CMAKE_COLOR_MAKEFILE)
-  list(INSERT BAZEL_INSTALL_ARGS 0 "--color")
-endif()
-
 if(CMAKE_INSTALL_NAME_TOOL)
   list(INSERT BAZEL_INSTALL_ARGS 0
     "--install_name_tool"
@@ -594,6 +576,7 @@ add_custom_target(drake_version ALL
 
 add_custom_target(drake_cxx_python ALL
   COMMAND "${Bazel_EXECUTABLE}" build ${BAZEL_INSTALL_TARGET}
+  DEPENDS "${PROJECT_BINARY_DIR}/VERSION.TXT"
   WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/drake_build_cwd"
   USES_TERMINAL
 )

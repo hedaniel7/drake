@@ -9,20 +9,14 @@ load(
     "//tools/skylark:drake_py.bzl",
     "drake_py_unittest",
 )
+load("//tools/skylark:drake_sh.bzl", "drake_sh_test")
 
-package(
-    default_visibility = [":__subpackages__"],
-)
+package(default_visibility = ["//visibility:private"])
 
 drake_cc_library(
     name = "iiwa_common",
-    srcs = [
-        "iiwa_common.cc",
-    ],
-    hdrs = [
-        "iiwa_common.h",
-    ],
-    visibility = ["//visibility:public"],
+    srcs = ["iiwa_common.cc"],
+    hdrs = ["iiwa_common.h"],
     deps = [
         "//manipulation/kuka_iiwa:iiwa_constants",
     ],
@@ -32,7 +26,6 @@ drake_cc_library(
     name = "iiwa_lcm",
     srcs = ["iiwa_lcm.cc"],
     hdrs = ["iiwa_lcm.h"],
-    visibility = ["//visibility:public"],
     deps = [
         "//manipulation/kuka_iiwa",
     ],
@@ -41,11 +34,7 @@ drake_cc_library(
 drake_cc_library(
     name = "lcm_plan_interpolator",
     srcs = ["lcm_plan_interpolator.cc"],
-    hdrs = [
-        "lcm_plan_interpolator.h",
-    ],
-    # TODO(hongkai.dai): move this package to manipulation folder.
-    visibility = ["//visibility:public"],
+    hdrs = ["lcm_plan_interpolator.h"],
     deps = [
         ":iiwa_common",
         ":iiwa_lcm",
@@ -59,7 +48,6 @@ drake_cc_library(
     name = "kuka_torque_controller",
     srcs = ["kuka_torque_controller.cc"],
     hdrs = ["kuka_torque_controller.h"],
-    visibility = ["//visibility:public"],
     deps = [
         "//multibody/plant",
         "//systems/controllers:inverse_dynamics",
@@ -179,9 +167,8 @@ alias(
 )
 
 # Test that kuka_simulation can load the dual arm urdf
-sh_test(
+drake_sh_test(
     name = "dual_kuka_simulation_test",
-    size = "small",
     srcs = ["kuka_simulation"],
     args = [
         "$(location :kuka_simulation)",

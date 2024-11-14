@@ -130,13 +130,6 @@ TEST_F(RevoluteJointTest, Damping) {
 
   // Expect to throw on invalid damping values.
   EXPECT_THROW(joint.set_default_damping(-1), std::exception);
-
-  // Ensure the deprecated versions are correct until removal.
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-  EXPECT_EQ(joint.damping(), new_damping);
-  EXPECT_EQ(joint.damping_vector(), Vector1d(new_damping));
-#pragma GCC diagnostic pop
 }
 
 // Context-dependent value access.
@@ -178,7 +171,6 @@ TEST_F(RevoluteJointTest, AddInTorques) {
   // Add value twice:
   joint1_->AddInTorque(*context_, some_value, &forces1);
   joint1_->AddInTorque(*context_, some_value, &forces1);
-
 
   MultibodyForces<double> forces2(tree());
   // Add value only once:

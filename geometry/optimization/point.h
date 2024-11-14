@@ -19,7 +19,7 @@ This set is always nonempty, even in the zero-dimensional case.
 @ingroup geometry_optimization */
 class Point final : public ConvexSet {
  public:
-  DRAKE_DEFAULT_COPY_AND_MOVE_AND_ASSIGN(Point)
+  DRAKE_DEFAULT_COPY_AND_MOVE_AND_ASSIGN(Point);
 
   /** Constructs a default (zero-dimensional, nonempty) set. */
   Point();
@@ -48,6 +48,12 @@ class Point final : public ConvexSet {
   @pre x must be of size ambient_dimension(). */
   void set_x(const Eigen::Ref<const Eigen::VectorXd>& x);
 
+  /** Every Point is bounded by construction.
+  @param parallelism Ignored -- no parallelization is used.
+  @note See @ref ConvexSet::IsBounded "parent class's documentation" for more
+  details. */
+  using ConvexSet::IsBounded;
+
  private:
   std::unique_ptr<ConvexSet> DoClone() const final;
 
@@ -58,8 +64,8 @@ class Point final : public ConvexSet {
 
   std::optional<Eigen::VectorXd> DoMaybeGetPoint() const final;
 
-  bool DoPointInSet(const Eigen::Ref<const Eigen::VectorXd>& x,
-                    double tol) const final;
+  std::optional<bool> DoPointInSetShortcut(
+      const Eigen::Ref<const Eigen::VectorXd>& x, double tol) const final;
 
   std::pair<VectorX<symbolic::Variable>,
             std::vector<solvers::Binding<solvers::Constraint>>>
@@ -86,6 +92,10 @@ class Point final : public ConvexSet {
       const final;
 
   double DoCalcVolume() const final { return 0.0; }
+
+  std::vector<std::optional<double>> DoProjectionShortcut(
+      const Eigen::Ref<const Eigen::MatrixXd>& points,
+      EigenPtr<Eigen::MatrixXd> projected_points) const final;
 
   Eigen::VectorXd x_;
 };

@@ -81,7 +81,7 @@ class PiecewisePolynomial final : public PiecewiseTrajectory<T> {
   PiecewisePolynomial() = default;
 
   // We are final, so this is okay.
-  DRAKE_DEFAULT_COPY_AND_MOVE_AND_ASSIGN(PiecewisePolynomial)
+  DRAKE_DEFAULT_COPY_AND_MOVE_AND_ASSIGN(PiecewisePolynomial);
 
   typedef MatrixX<Polynomial<T>> PolynomialMatrix;
 
@@ -181,7 +181,7 @@ class PiecewisePolynomial final : public PiecewiseTrajectory<T> {
                       const std::vector<T>& breaks);
   // @}
 
-  ~PiecewisePolynomial() override = default;
+  ~PiecewisePolynomial() override;
 
   std::unique_ptr<Trajectory<T>> Clone() const override;
 
@@ -745,6 +745,26 @@ class PiecewisePolynomial final : public PiecewiseTrajectory<T> {
    */
   void shiftRight(const T& offset);
 
+  /** Adds a break at the specified time. It does not change the value of the
+   * trajectory at any point but the number of segments increases by 1.
+   * @returns the index of the new break.
+   * @throws std::exception if `new_break` is not within the trajectory's
+   *        time range.
+   * @warning If `new_break` is within PiecewiseTrajectory::kEpsilonTime from
+   *         an existing break, the new break will be silently ignored. Returns
+   *        the index of the existing break.
+   *
+   */
+  int AddBreak(const T& new_break);
+
+  /** Slices the trajectory within a specified time range.
+   * q = p.SliceByTime(t1, t2) returns a PiecewisePolynomial q such that
+   * q.start_time() = t1, q.end_time() = t2, and q(t) = p(t) for t1 <= t <= t2.
+   * @throws std::exception if `start_time` or `end_time` is not within the
+   *        trajectory's time range.
+   */
+  PiecewisePolynomial SliceByTime(const T& start_time, const T& end_time) const;
+
   /**
    * Replaces the specified block of the PolynomialMatrix at the given
    * segment index.
@@ -875,4 +895,4 @@ class PiecewisePolynomial final : public PiecewiseTrajectory<T> {
 }  // namespace drake
 
 DRAKE_DECLARE_CLASS_TEMPLATE_INSTANTIATIONS_ON_DEFAULT_SCALARS(
-    class drake::trajectories::PiecewisePolynomial)
+    class drake::trajectories::PiecewisePolynomial);

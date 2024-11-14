@@ -49,6 +49,7 @@ drake_cc_library(
     ],
     deps = [
         ":multibody_tree_indexes",
+        "//multibody/topology",
     ],
 )
 
@@ -58,6 +59,7 @@ drake_cc_library(
         "acceleration_kinematics_cache.cc",
         "articulated_body_force_cache.cc",
         "articulated_body_inertia_cache.cc",
+        "frame_body_pose_cache.cc",
         "position_kinematics_cache.cc",
         "velocity_kinematics_cache.cc",
     ],
@@ -65,6 +67,7 @@ drake_cc_library(
         "acceleration_kinematics_cache.h",
         "articulated_body_force_cache.h",
         "articulated_body_inertia_cache.h",
+        "frame_body_pose_cache.h",
         "position_kinematics_cache.h",
         "velocity_kinematics_cache.h",
     ],
@@ -83,14 +86,18 @@ drake_cc_library(
         "ball_rpy_joint.cc",
         "body_node.cc",
         "body_node_impl.cc",
+        "body_node_impl_mass_matrix.cc",
         "door_hinge.cc",
         "element_collection.cc",
         "fixed_offset_frame.cc",
+        "force_element.cc",
         "frame.cc",
+        "frame_base.cc",
         "joint.cc",
         "joint_actuator.cc",
         "linear_bushing_roll_pitch_yaw.cc",
         "linear_spring_damper.cc",
+        "mobilizer.cc",
         "mobilizer_impl.cc",
         "model_instance.cc",
         "multibody_element.cc",
@@ -179,7 +186,7 @@ drake_cc_library(
         "//common:string_container",
         "//common:unused",
         "//math:geometric_transform",
-        "//multibody/topology:multibody_graph",
+        "//multibody/topology",
         "//systems/framework:leaf_system",
     ],
 )
@@ -262,6 +269,7 @@ drake_cc_library(
         "//geometry:shape_specification",
         "//geometry/proximity:make_mesh_from_vtk",
         "//geometry/proximity:obj_to_surface_mesh",
+        "//geometry/proximity:polygon_to_triangle_mesh",
         "//geometry/proximity:triangle_surface_mesh",
         "//geometry/proximity:volume_to_surface_mesh",
     ],
@@ -684,6 +692,7 @@ drake_cc_googletest(
 drake_cc_googletest(
     name = "geometry_spatial_inertia_test",
     data = [
+        "//geometry:test_obj_files",
         "//geometry:test_vtk_files",
         "//multibody/parsing:test_models",
     ],
@@ -698,4 +707,4 @@ drake_cc_googletest(
     ],
 )
 
-add_lint_tests(enable_clang_format_lint = False)
+add_lint_tests()

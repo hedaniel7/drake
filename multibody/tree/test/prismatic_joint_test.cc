@@ -34,7 +34,7 @@ class PrismaticJointTest : public ::testing::Test {
     // We are done adding modeling elements. Transfer tree to system and get
     // a Context.
     system_ = std::make_unique<internal::MultibodyTreeSystem<double>>(
-        std::move(model), true/* is_discrete */);
+        std::move(model), true /* is_discrete */);
     context_ = system_->CreateDefaultContext();
   }
 
@@ -126,13 +126,6 @@ TEST_F(PrismaticJointTest, Damping) {
 
   // Expect to throw on invalid damping values.
   EXPECT_THROW(joint.set_default_damping(-1), std::exception);
-
-  // Ensure the deprecated versions are correct until removal.
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-  EXPECT_EQ(joint.damping(), new_damping);
-  EXPECT_EQ(joint.damping_vector(), Vector1d(new_damping));
-#pragma GCC diagnostic pop
 }
 
 // Context-dependent value access.

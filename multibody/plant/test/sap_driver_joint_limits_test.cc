@@ -172,8 +172,7 @@ class KukaIiwaArmTests : public ::testing::Test {
     VectorXd v0(plant.num_velocities());
     VectorXd q0(plant.num_positions());
 
-    for (JointIndex joint_index(0); joint_index < plant.num_joints();
-         ++joint_index) {
+    for (JointIndex joint_index : plant.GetJointIndices()) {
       const Joint<double>& joint = plant.get_joint(joint_index);
 
       if (joint.num_velocities() == 1) {  // skip welds in the model.
@@ -288,11 +287,10 @@ class KukaIiwaArmTests : public ::testing::Test {
   // Set arbitrary state, though within joint limits.
   void SetArbitraryState(const MultibodyPlant<double>& plant,
                          Context<double>* context) {
-    for (JointIndex joint_index(0); joint_index < plant.num_joints();
-         ++joint_index) {
+    for (JointIndex joint_index : plant.GetJointIndices()) {
       const Joint<double>& joint = plant.get_joint(joint_index);
       // This model only has weld, prismatic, and revolute joints.
-      if (joint.type_name() == "revolute") {
+      if (joint.type_name() == RevoluteJoint<double>::kTypeName) {
         const RevoluteJoint<double>& revolute_joint =
             dynamic_cast<const RevoluteJoint<double>&>(joint);
         // Arbitrary position within position limits.
@@ -307,7 +305,7 @@ class KukaIiwaArmTests : public ::testing::Test {
         // Set damping.
         revolute_joint.SetDamping(
             context, kJointDamping(revolute_joint.velocity_start()));
-      } else if (joint.type_name() == "prismatic") {
+      } else if (joint.type_name() == PrismaticJoint<double>::kTypeName) {
         const PrismaticJoint<double>& prismatic_joint =
             dynamic_cast<const PrismaticJoint<double>&>(joint);
         // Arbitrary position within position limits.
@@ -456,8 +454,7 @@ TEST_F(KukaIiwaArmTests, LimitConstraints) {
   int num_constraints = 0;  // count number of constraints visited.
   // The manager adds limit constraints in the order joints are specified.
   // Therefore we verify the limit constraint for each joint.
-  for (JointIndex joint_index(0); joint_index < plant_.num_joints();
-       ++joint_index) {
+  for (JointIndex joint_index : plant_.GetJointIndices()) {
     const Joint<double>& joint = plant_.get_joint(joint_index);
     if (joint.num_velocities() == 1) {
       const int v_index = joint.velocity_start();

@@ -6,6 +6,9 @@ namespace drake {
 namespace trajectories {
 
 template <typename T>
+Trajectory<T>::~Trajectory() = default;
+
+template <typename T>
 MatrixX<T> Trajectory<T>::vector_values(const std::vector<T>& t) const {
   return vector_values(Eigen::Map<const VectorX<T>>(t.data(), t.size()));
 }
@@ -90,4 +93,4 @@ std::unique_ptr<Trajectory<T>> Trajectory<T>::DoMakeDerivative(
 }  // namespace drake
 
 DRAKE_DEFINE_CLASS_TEMPLATE_INSTANTIATIONS_ON_DEFAULT_SCALARS(
-    class drake::trajectories::Trajectory)
+    class drake::trajectories::Trajectory);

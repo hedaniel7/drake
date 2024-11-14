@@ -40,7 +40,7 @@ template <typename T>
 class ExponentialPlusPiecewisePolynomial final : public PiecewiseTrajectory<T> {
  public:
   // We are final, so this is okay.
-  DRAKE_DEFAULT_COPY_AND_MOVE_AND_ASSIGN(ExponentialPlusPiecewisePolynomial)
+  DRAKE_DEFAULT_COPY_AND_MOVE_AND_ASSIGN(ExponentialPlusPiecewisePolynomial);
 
   ExponentialPlusPiecewisePolynomial() = default;
 
@@ -69,7 +69,7 @@ class ExponentialPlusPiecewisePolynomial final : public PiecewiseTrajectory<T> {
   ExponentialPlusPiecewisePolynomial(
       const PiecewisePolynomial<T>& piecewise_polynomial_part);
 
-  ~ExponentialPlusPiecewisePolynomial() override = default;
+  ~ExponentialPlusPiecewisePolynomial() override;
 
   std::unique_ptr<Trajectory<T>> Clone() const override;
 

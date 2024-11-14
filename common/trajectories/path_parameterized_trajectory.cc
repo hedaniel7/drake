@@ -19,6 +19,9 @@ PathParameterizedTrajectory<T>::PathParameterizedTrajectory(
 }
 
 template <typename T>
+PathParameterizedTrajectory<T>::~PathParameterizedTrajectory() = default;
+
+template <typename T>
 std::unique_ptr<Trajectory<T>> PathParameterizedTrajectory<T>::Clone() const {
   return std::make_unique<PathParameterizedTrajectory<T>>(*this);
 }
@@ -90,4 +93,4 @@ std::unique_ptr<Trajectory<T>> PathParameterizedTrajectory<T>::DoMakeDerivative(
 }  // namespace drake
 
 DRAKE_DEFINE_CLASS_TEMPLATE_INSTANTIATIONS_ON_DEFAULT_SCALARS(
-    class drake::trajectories::PathParameterizedTrajectory)
+    class drake::trajectories::PathParameterizedTrajectory);

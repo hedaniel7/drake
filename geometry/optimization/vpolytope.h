@@ -31,9 +31,9 @@ and vertices_.cols() are zero, we treat this as no points in {0}, which is
 empty.
 
 @ingroup geometry_optimization */
-class VPolytope final : public ConvexSet, private ShapeReifier {
+class VPolytope final : public ConvexSet {
  public:
-  DRAKE_DEFAULT_COPY_AND_MOVE_AND_ASSIGN(VPolytope)
+  DRAKE_DEFAULT_COPY_AND_MOVE_AND_ASSIGN(VPolytope);
 
   /** Constructs a set with no vertices in the zero-dimensional space, which is
   empty (by convention). */
@@ -54,7 +54,7 @@ class VPolytope final : public ConvexSet, private ShapeReifier {
   @throws std::runtime_error if H is unbounded or if Qhull terminates with an
   error.
   @pydrake_mkdoc_identifier{hpolyhedron} */
-  explicit VPolytope(const HPolyhedron& H, const double tol = 1e-9);
+  explicit VPolytope(const HPolyhedron& H, double tol = 1e-9);
 
   /** Constructs the polytope from a SceneGraph geometry.
   @pydrake_mkdoc_identifier{scenegraph} */
@@ -99,6 +99,12 @@ class VPolytope final : public ConvexSet, private ShapeReifier {
   @note this function calls qhull to compute the volume. */
   using ConvexSet::CalcVolume;
 
+  /** Every VPolytope is bounded by construction.
+  @param parallelism Ignored -- no parallelization is used.
+  @note See @ref ConvexSet::IsBounded "parent class's documentation" for more
+  details. */
+  using ConvexSet::IsBounded;
+
  private:
   std::unique_ptr<ConvexSet> DoClone() const final;
 
@@ -137,13 +143,10 @@ class VPolytope final : public ConvexSet, private ShapeReifier {
   std::pair<std::unique_ptr<Shape>, math::RigidTransformd> DoToShapeWithPose()
       const final;
 
-  double DoCalcVolume() const final;
+  std::unique_ptr<ConvexSet> DoAffineHullShortcut(
+      std::optional<double> tol) const final;
 
-  // Implement support shapes for the ShapeReifier interface.
-  using ShapeReifier::ImplementGeometry;
-  void ImplementGeometry(const Box& box, void* data) final;
-  void ImplementGeometry(const Convex& convex, void* data) final;
-  void ImplementGeometry(const Mesh& mesh, void* data) final;
+  double DoCalcVolume() const final;
 
   Eigen::MatrixXd vertices_;
 };

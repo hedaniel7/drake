@@ -47,7 +47,6 @@ drake_py_library(
         "__init__.py",
     ],
     deps = [
-        "//bindings:bazel_workaround_4594_libdrake_py",
         "//bindings/pydrake/common:_init_py",
     ],
 )
@@ -393,6 +392,20 @@ drake_py_unittest(
     tags = ["lint"],
 )
 
+drake_py_unittest(
+    name = "memory_leak_test",
+    data = [
+        "@drake_models//:iiwa_description",
+        "@drake_models//:manipulation_station",
+        "@drake_models//:veggies",
+        "@drake_models//:wsg_50_description",
+    ],
+    deps = [
+        ":all_py",
+        "//bindings/pydrake/common/test_utilities",
+    ],
+)
+
 drake_py_binary(
     name = "stubgen",
     srcs = ["stubgen.py"],
@@ -438,6 +451,7 @@ PYI_FILES = [
     "pydrake/symbolic.pyi",
     "pydrake/systems/analysis.pyi",
     "pydrake/systems/controllers.pyi",
+    "pydrake/systems/estimators.pyi",
     "pydrake/systems/framework.pyi",
     "pydrake/systems/lcm.pyi",
     "pydrake/systems/primitives.pyi",
