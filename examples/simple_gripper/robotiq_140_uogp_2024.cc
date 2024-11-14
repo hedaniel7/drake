@@ -379,7 +379,7 @@ directives:
                             builder.AddSystem<drake::multibody::ExternalForceApplicator>(&plant);
 
                     // Add force to be output and specify time window, force multiplier and force direction
-                    external_force_applicator->AddForce(0.0, 0.2, 1.0, Vector3d(0, 0, 1));
+                    external_force_applicator->AddForce(0.0, 0.3, 1.0, Vector3d(0, 0, 1));
 
                     // Connect the external force applicator system to the MBP.
                     builder.Connect(external_force_applicator->get_output_port(0),
@@ -483,9 +483,11 @@ directives:
                     bool right_pad_in_contact_with_object = false;
                     bool other_gripper_parts_in_contact_with_object = false;
                     bool object_in_contact_with_table = false;
-                    bool gripper_in_contact_with_table = false;  // New flag for gripper-table collision
+                    bool gripper_in_contact_with_table = false;  // Existing flag for gripper-table collision
 
-                    // Process the penetration pairs.
+                    bool finger_pads_in_contact_with_each_other = false;  // New flag for finger pad collision
+
+// Process the penetration pairs.
                     for (const auto& penetration : penetration_pairs) {
                         GeometryId geometryA_id = penetration.id_A;
                         GeometryId geometryB_id = penetration.id_B;
@@ -513,21 +515,35 @@ directives:
                         bool bodyA_is_right_pad = (bodyA_index == right_pad_index);
                         bool bodyB_is_right_pad = (bodyB_index == right_pad_index);
 
+                        // **Check if the penetration is between the left and right finger pads.**
+                        if ((bodyA_is_left_pad && bodyB_is_right_pad) || (bodyA_is_right_pad && bodyB_is_left_pad)) {
+                            finger_pads_in_contact_with_each_other = true;
+                        }
+
+                        // Existing collision checks...
                         // Check if bodyA is other gripper parts (excluding pads).
-                        bool bodyA_is_other_gripper = std::find(gripper_other_body_indices.begin(), gripper_other_body_indices.end(), bodyA_index) != gripper_other_body_indices.end();
-                        bool bodyB_is_other_gripper = std::find(gripper_other_body_indices.begin(), gripper_other_body_indices.end(), bodyB_index) != gripper_other_body_indices.end();
+                        bool bodyA_is_other_gripper = std::find(gripper_other_body_indices.begin(),
+                                                                gripper_other_body_indices.end(), bodyA_index) != gripper_other_body_indices.end();
+                        bool bodyB_is_other_gripper = std::find(gripper_other_body_indices.begin(),
+                                                                gripper_other_body_indices.end(), bodyB_index) != gripper_other_body_indices.end();
 
                         // Check if bodyA or bodyB is part of the object.
-                        bool bodyA_is_object = std::find(object_body_indices.begin(), object_body_indices.end(), bodyA_index) != object_body_indices.end();
-                        bool bodyB_is_object = std::find(object_body_indices.begin(), object_body_indices.end(), bodyB_index) != object_body_indices.end();
+                        bool bodyA_is_object = std::find(object_body_indices.begin(),
+                                                         object_body_indices.end(), bodyA_index) != object_body_indices.end();
+                        bool bodyB_is_object = std::find(object_body_indices.begin(),
+                                                         object_body_indices.end(), bodyB_index) != object_body_indices.end();
 
                         // Check if bodyA or bodyB is part of the table.
-                        bool bodyA_is_table = std::find(table_body_indices.begin(), table_body_indices.end(), bodyA_index) != table_body_indices.end();
-                        bool bodyB_is_table = std::find(table_body_indices.begin(), table_body_indices.end(), bodyB_index) != table_body_indices.end();
+                        bool bodyA_is_table = std::find(table_body_indices.begin(),
+                                                        table_body_indices.end(), bodyA_index) != table_body_indices.end();
+                        bool bodyB_is_table = std::find(table_body_indices.begin(),
+                                                        table_body_indices.end(), bodyB_index) != table_body_indices.end();
 
                         // Check if bodyA or bodyB is part of the gripper (any part).
-                        bool bodyA_is_gripper = std::find(gripper_body_indices.begin(), gripper_body_indices.end(), bodyA_index) != gripper_body_indices.end();
-                        bool bodyB_is_gripper = std::find(gripper_body_indices.begin(), gripper_body_indices.end(), bodyB_index) != gripper_body_indices.end();
+                        bool bodyA_is_gripper = std::find(gripper_body_indices.begin(),
+                                                          gripper_body_indices.end(), bodyA_index) != gripper_body_indices.end();
+                        bool bodyB_is_gripper = std::find(gripper_body_indices.begin(),
+                                                          gripper_body_indices.end(), bodyB_index) != gripper_body_indices.end();
 
                         // Check for collisions between finger pads and object.
                         if ((bodyA_is_left_pad && bodyB_is_object) || (bodyA_is_object && bodyB_is_left_pad)) {
@@ -547,13 +563,13 @@ directives:
                             object_in_contact_with_table = true;
                         }
 
-                        // **Check for collisions between gripper (any part) and table.**
+                        // Check for collisions between gripper (any part) and table.
                         if ((bodyA_is_gripper && bodyB_is_table) || (bodyA_is_table && bodyB_is_gripper)) {
                             gripper_in_contact_with_table = true;
                         }
                     }
 
-                    // Output the collision results.
+// Output the collision results.
                     std::cout << "Left finger pad in collision with object: "
                               << (left_pad_in_contact_with_object ? "Yes" : "No") << std::endl;
 
@@ -568,6 +584,9 @@ directives:
 
                     std::cout << "Gripper in collision with table: "
                               << (gripper_in_contact_with_table ? "Yes" : "No") << std::endl;
+
+                    std::cout << "Finger pads in collision with each other: "
+                              << (finger_pads_in_contact_with_each_other ? "Yes" : "No") << std::endl;
 
                     // Pause so that you can see the Meshcat output.
                     std::cout << "[Press Enter to finish]." << std::endl;
