@@ -144,7 +144,8 @@
         <color rgba="0.9 0.0 0.0 1"/>
       </material>
       <drake:proximity_properties>
-        <drake:rigid_hydroelastic/>
+        <drake:compliant_hydroelastic/>
+        <drake:hydroelastic_modulus value="2.5e6"/>
         <drake:mesh_resolution_hint value="0.0001"/>
         <drake:hunt_crossley_dissipation value="50"/>
         <drake:relaxation_time value="50"/>
@@ -294,8 +295,8 @@
         <color rgba="0.9 0.0 0.0 1"/>
       </material>
       <drake:proximity_properties>
-        <drake:rigid_hydroelastic/>
-        <drake:mesh_resolution_hint value="0.0001"/>
+        <drake:compliant_hydroelastic/>
+        <drake:hydroelastic_modulus value="2.5e6"/>
         <drake:hunt_crossley_dissipation value="50"/>
         <drake:relaxation_time value="50"/>
         <drake:point_contact_stiffness value="1e5"/>
