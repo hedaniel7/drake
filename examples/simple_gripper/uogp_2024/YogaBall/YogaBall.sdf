@@ -34,6 +34,7 @@
           <drake:mu_static>1.0</drake:mu_static>
           <drake:hunt_crossley_dissipation>50.0</drake:hunt_crossley_dissipation>
           <drake:hydroelastic_margin>1e-4</drake:hydroelastic_margin>
+          <drake:mesh_resolution_hint>1e-4</drake:mesh_resolution_hint>
         </drake:proximity_properties>
       </collision>
     </link>
