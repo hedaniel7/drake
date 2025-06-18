@@ -2,9 +2,7 @@
 #include <memory>
 #include <string>
 #include <sstream>
-
 #include <fmt/format.h>
-
 #include "drake/common/eigen_types.h"
 #include "drake/multibody/parsing/parser.h"
 #include "drake/multibody/parsing/package_map.h"
@@ -16,134 +14,17 @@
 #include "drake/visualization/visualization_config_functions.h"
 #include "drake/multibody/plant/discrete_contact_pair.h"
 #include "drake/multibody/plant/contact_results.h"
-
 #include <drake/multibody/tree/rigid_body.h>
 #include <drake/multibody/tree/spatial_inertia.h>
-
 #include "drake/geometry/proximity_properties.h"
-
 #include <gflags/gflags.h>
 
-// for the ExternalForceApplicator
-
-#include "drake/common/eigen_types.h"
-#include "drake/multibody/parsing/parser.h"
-#include "drake/multibody/parsing/package_map.h"
-#include "drake/multibody/plant/externally_applied_spatial_force.h"
-#include "drake/multibody/plant/multibody_plant.h"
-#include "drake/multibody/parsing/collision_filter_groups.h"
-#include "drake/systems/analysis/simulator.h"
-#include "drake/systems/framework/diagram_builder.h"
-#include "drake/systems/primitives/constant_vector_source.h"
-#include "drake/visualization/visualization_config_functions.h"
-#include "drake/multibody/plant/discrete_contact_pair.h"
-#include "drake/multibody/plant/contact_results.h"
-#include "drake/math/rigid_transform.h"
-#include <drake/multibody/tree/spatial_inertia.h>
-
+// For collision info
 #include "drake/multibody/tree/multibody_tree_indexes.h"
 #include "drake/geometry/geometry_ids.h"
 #include "drake/geometry/scene_graph_inspector.h"
 #include "drake/geometry/query_object.h"
-#include "drake/geometry/scene_graph_inspector.h"
 #include "drake/geometry/query_results/penetration_as_point_pair.h"
-
-namespace drake {
-    namespace multibody {
-
-        // Class definition of the Leafsystem which should output multiple forces
-        class ExternalForceApplicator : public systems::LeafSystem<double> {
-        public:
-            explicit ExternalForceApplicator(const MultibodyPlant<double>* plant);
-
-            void AddForce(double start_time, double end_time, double force_magnitude, const Eigen::Vector3d& force_direction);
-
-        private:
-            void CalcSpatialForceOutput(
-                    [[maybe_unused]] const systems::Context<double>& context,
-                    std::vector<drake::multibody::ExternallyAppliedSpatialForce<double>>* output) const;
-
-            const MultibodyPlant<double>* plant_{nullptr};
-            std::vector<double> start_times_;
-            std::vector<double> end_times_;
-            std::vector<double> force_magnitudes_;
-            std::vector<Eigen::Vector3d> force_directions_;
-        };
-
-        // Constructor of class in which we define the callback function of the output port
-        // which returns the output of our Leafsytem
-        ExternalForceApplicator::ExternalForceApplicator(const MultibodyPlant<double>* plant)
-                : plant_(plant) {
-            this->DeclareAbstractOutputPort(
-                    "spatial_force_output",
-                    &ExternalForceApplicator::CalcSpatialForceOutput);
-        }
-
-        // Because - from my understanding now, I could be wrong here - Drake only allows connecting one system to
-        // plant.get_applied_spatial_force_input_port()), we can't design the Leafsystem class here to be instantiated
-        // multiple times for multiple forces. I tried it myself and got:
-        /*
-        // We changed the class and the constructor in this hypothetical failing example to take the arguments
-        // in the constructor
-        auto external_force_applicator_1 =
-        builder.AddSystem<drake::multibody::ExternalForceApplicator>(&plant, 7.0, 12.0, 10.0, Vector3d(0, 0, 1));
-        auto external_force_applicator_2 =
-        builder.AddSystem<drake::multibody::ExternalForceApplicator>(&plant, 15.0, 20.0, 10.0, Vector3d(1, 0, 0));
-
-
-        builder.Connect(external_force_applicator_1->get_output_port(0),
-        plant.get_applied_spatial_force_input_port());
-        builder.Connect(external_force_applicator_2->get_output_port(0),
-        plant.get_applied_spatial_force_input_port());
-
-        This would yield the following errro:
-        abort: Failure at systems/framework/diagram_builder.cc:453 in ThrowIfInputAlreadyWired():
-        condition 'iter != input_port_ids_.end()' failed.
-        */
-        // Because of that, I chose to only instantiate one Leafsystem class and add multiple forces to be output from
-        // the output of this one Leafsystem class and specify their time window, magnitude and direction in this method
-        void ExternalForceApplicator::AddForce(double start_time, double end_time, double force_magnitude, const Eigen::Vector3d& force_direction) {
-            start_times_.push_back(start_time);
-            end_times_.push_back(end_time);
-            force_magnitudes_.push_back(force_magnitude);
-            force_directions_.push_back(force_direction);
-        }
-
-        // This method specifies what is output from this Leafsystem continually
-        //
-        // Remark: The compiler throws and unused error if the context is not used. It is used here anyway, though.
-        void ExternalForceApplicator::CalcSpatialForceOutput(
-                [[maybe_unused]] const systems::Context<double>& context,
-                std::vector<drake::multibody::ExternallyAppliedSpatialForce<double>>* output) const {
-
-            const double current_time = context.get_time();
-            output->clear();
-
-            const RigidBody<double>& object =
-                    dynamic_cast<const RigidBody<double>&>(plant_->GetBodyByName("base_link"));
-            // valid names in model instance 'spam' (the to be grasped object) are: base_link;
-
-            const BodyIndex object_body_index = object.index();
-            const Vector3<double> object_com = object.default_com();
-            const double g = UniformGravityFieldElement<double>::kDefaultStrength;
-
-            // We look through all the time windows and see if we output a force at the given simulation time
-            for (size_t i = 0; i < start_times_.size(); ++i) {
-                if (current_time >= start_times_[i] && current_time <= end_times_[i]) {
-                    const SpatialForce<double> F_object_com_W(Vector3<double>::Zero() /* no torque */,
-                                                              object.default_mass() * g * force_magnitudes_[i] * force_directions_[i]);
-
-                    output->emplace_back();
-                    auto& force = output->back();
-                    force.body_index = object_body_index;
-                    force.p_BoBq_B = object_com;
-                    force.F_Bq_W = F_object_com_W;
-                }
-            }
-        }
-
-    }  // namespace multibody
-}  // namespace drake
 
 DEFINE_string(position, "", "Position vector as comma-separated values, e.g., '1,2,3'");
 DEFINE_string(orientation, "", "Orientation quaternion as comma-separated values, e.g., 'w,x,y,z'");
@@ -165,9 +46,6 @@ namespace drake {
             using drake::multibody::BodyIndex;
             using drake::multibody::PointPairContactInfo;
             using drake::geometry::GeometryId;
-
-            // Add using declarations
-            using drake::geometry::GeometryId;
             using drake::geometry::FrameId;
             using drake::geometry::QueryObject;
             using drake::geometry::PenetrationAsPointPair;
@@ -175,6 +53,27 @@ namespace drake {
 
 
             namespace {
+
+                // This is the Drake Simulation module used in the Master Thesis. This particular file extends the base
+                // simulation with additional contact collision pair infos between object, table and gripper parts
+                // (left and right gripper finger pad and other parts).
+
+                // Part 1: Parse flags set in the command which presumably calls the simulation binary
+                // (This enables a script software for example to automatically run and evaluate simulation instances
+                // for an array of grasp poses predicted by e.g. the Contact-GraspNet neural network. We also avoid
+                // recompiling the simulation with usage of the flags in a precompiled binary).
+                // The above defined flags define for example the position and orientation of the parallel jaw
+                // gripper, its gripper opening, which object to grasp and how long to run the simulation.
+
+                // Additionally, two distinctly different height correction are made possible with the flags:
+                // 1) a correction for the gripper height in direction of the gripper z-axis to accomodate the fact
+                // that Contact-GraspNet gripper width predictions are trained for another gripper model Franka Panda
+                // than the gripper model Robotiq 140 we use in our simulation (and on the real robot at DLR).
+
+                // 2) a table height correction due to 2cm offset from an edge bleeding removal which we use to clean
+                // the partial view point clouds of the unknown objects (more details in the Master Thesis presentation:
+                // https://www.youtube.com/watch?v=LdrG_YuUSac at 15:50)
+
 
                 Eigen::Vector3d parse_position(const std::string& position_str) {
                     std::istringstream iss(position_str);
@@ -196,9 +95,13 @@ namespace drake {
                     return Eigen::Quaterniond(w, x, y, z).normalized();
                 }
 
-                // Function to predict gripper grasp point for the robotiq 140 for a given opening in meters
+                // Function to predict gripper grasp point for the Robotiq 140 for a given opening in meters
+                // This is the result of System identification in which we fit a polynomial function to the
+                // (gripper with, gripper height) measurements of the real Robotiq 140. This allows
+                // us to predict the height of the gripper given its set gripper width.
+                // This is later used in the gripper height correction from Franka Panda to Robotiq 140.
                 double predict_robotiq140_gripper_grasp_point_height(double cgn_gripper_width) {
-                    // cgn_gripper_width is in meters, so we need to convert it to mm for our original function
+                    // gripper width predicted by neural network is in meters, so we need to convert it to mm for our original function
                     double x_mm = cgn_gripper_width * 1000;
                     double height_mm = 229.644116 + 0.004132*x_mm - 0.000725*std::pow(x_mm, 2) - 0.000004*std::pow(x_mm, 3);
                     // Convert the result back to meters
@@ -211,9 +114,9 @@ namespace drake {
                     std::string orientation_str = FLAGS_orientation;
                     double gripper_opening = FLAGS_gripper_opening;
                     double manual_correction = FLAGS_manual_correction;
-                    double table_correction = FLAGS_table_correction; // Parsed table_correction
+                    double table_correction = FLAGS_table_correction;
                     bool no_height_correction = FLAGS_NoHeightCorrection;
-                    double advance_sim_to = FLAGS_advanceSimTo;  // Retrieve the simulation time
+                    double advance_sim_to = FLAGS_advanceSimTo;
                     std::string uogp_object = FLAGS_uogp_object;
 
 
@@ -221,9 +124,9 @@ namespace drake {
                     std::cout << "Orientation: " << orientation_str << std::endl;
                     std::cout << "Gripper Opening: " << gripper_opening << " meters" << std::endl;
                     std::cout << "Manual Correction: " << manual_correction << " meters" << std::endl;
-                    std::cout << "Table Correction: " << table_correction << " meters" << std::endl; // Display table_correction
+                    std::cout << "Table Correction: " << table_correction << " meters" << std::endl;
                     std::cout << "No Height Correction: " << (no_height_correction ? "True" : "False") << std::endl;
-                    std::cout << "Advancing simulation to: " << advance_sim_to << " seconds" << std::endl;  // Display simulation time
+                    std::cout << "Advancing simulation to: " << advance_sim_to << " seconds" << std::endl;
                     std::cout << "UOGP Object: " << uogp_object << std::endl;
 
                     // Parse position and orientation
@@ -237,6 +140,11 @@ namespace drake {
                         std::cerr << "Error parsing input: " << e.what() << std::endl;
                         return 1;
                     }
+
+                    // We correct the height of the gripper in the gripper z direction to enable an
+                    // adjustment of the predicted pose by the neural network Contact-GraspNet
+                    // which was trained to predict gripper width for a different gripper
+                    // model (Franka Panda)
 
                     drake::math::RotationMatrix<double> orientation_matrix = drake::math::RotationMatrix<double>(parsed_orientation);
 
@@ -299,9 +207,9 @@ namespace drake {
                     // Combine default orientation with parsed orientation
                     drake::math::RotationMatrix<double> final_rotation = orientation_matrix * z_rotation;
 
-                    // Output the final rotation matrix with determinant
-                    // std::string final_matrix_str = matrix_to_string_with_det(final_rotation);
-                    // drake::log()->info("Final Rotation matrix:\n{}", final_matrix_str);
+
+                    // Part 2: Simulation of the grasp.
+                    // We load in the necessary files of the gripper, table and object and simulate the grasp process
 
                     auto meshcat = std::make_shared<geometry::Meshcat>();
                     systems::DiagramBuilder<double> builder;
@@ -363,8 +271,6 @@ directives:
                     plant.WeldFrames(
                             plant.world_frame(),
                             plant.GetBodyByName("robotiq_arg2f_base_link").body_frame(),
-                            // math::RigidTransformd(math::RollPitchYawd(M_PI , 0, M_PI),
-                            //                      Eigen::Vector3d(0.2, 0, 0.21)));
                             drake::math::RigidTransform<double>(final_rotation, height_correct_parsed_position));
 
                     plant.Finalize();
@@ -374,20 +280,9 @@ directives:
 
                     visualization::AddDefaultVisualization(&builder, meshcat);
 
-                    // Create ExternalForceApplicator instance, a Leafsystem which can continually output a force
-                    auto external_force_applicator =
-                            builder.AddSystem<drake::multibody::ExternalForceApplicator>(&plant);
-
-                    // Add force to be output and specify time window, force multiplier and force direction
-                    external_force_applicator->AddForce(0.0, 0.3, 1.0, Vector3d(0, 0, 1));
-
-                    // Connect the external force applicator system to the MBP.
-                    builder.Connect(external_force_applicator->get_output_port(0),
-                                    plant.get_applied_spatial_force_input_port());
-
                     auto diagram = builder.Build();
 
-                    // Set up simulator.
+                    // Simulation of the grasp
                     systems::Simulator simulator(*diagram);
 
                     meshcat->StartRecording(32.0, false);
@@ -397,6 +292,9 @@ directives:
                     const auto& final_context = simulator.get_context();
 
                     const auto& plant_context = diagram->GetSubsystemContext(plant, final_context);
+
+                    // Part 3: Output of the force (and moment) vectors and their locations, the location of the
+                    // object COM and its orientation
 
                     const ContactResults<double>& contact_results =
                             plant.get_contact_results_output_port().Eval<ContactResults<double>>(plant_context);
@@ -446,6 +344,9 @@ directives:
                     // Access the SceneGraph's inspector.
                     const auto& inspector = query_object.inspector();
 
+                    // Part 4: Additional part only in this file:
+                    // Process and output information about the different types of collisions between object, table and gripper parts:
+
                     // Get the list of all penetrations.
                     std::vector<PenetrationAsPointPair<double>> penetration_pairs = query_object.ComputePointPairPenetration();
 
@@ -483,11 +384,11 @@ directives:
                     bool right_pad_in_contact_with_object = false;
                     bool other_gripper_parts_in_contact_with_object = false;
                     bool object_in_contact_with_table = false;
-                    bool gripper_in_contact_with_table = false;  // Existing flag for gripper-table collision
+                    bool gripper_in_contact_with_table = false;
 
-                    bool finger_pads_in_contact_with_each_other = false;  // New flag for finger pad collision
+                    bool finger_pads_in_contact_with_each_other = false;
 
-// Process the penetration pairs.
+                    // Process the penetration pairs.
                     for (const auto& penetration : penetration_pairs) {
                         GeometryId geometryA_id = penetration.id_A;
                         GeometryId geometryB_id = penetration.id_B;
@@ -569,7 +470,7 @@ directives:
                         }
                     }
 
-// Output the collision results.
+                    // Output the collision results.
                     std::cout << "Left finger pad in collision with object: "
                               << (left_pad_in_contact_with_object ? "Yes" : "No") << std::endl;
 
@@ -595,7 +496,7 @@ directives:
                     return 0;
                 }
 
-            }  // namespace
+            }
         }  // namespace simple_gripper
     }  // namespace examples
 }  // namespace drake

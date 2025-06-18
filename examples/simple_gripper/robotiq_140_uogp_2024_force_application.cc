@@ -2,9 +2,7 @@
 #include <memory>
 #include <string>
 #include <sstream>
-
 #include <fmt/format.h>
-
 #include "drake/common/eigen_types.h"
 #include "drake/multibody/parsing/parser.h"
 #include "drake/multibody/parsing/package_map.h"
@@ -16,30 +14,14 @@
 #include "drake/visualization/visualization_config_functions.h"
 #include "drake/multibody/plant/discrete_contact_pair.h"
 #include "drake/multibody/plant/contact_results.h"
-
 #include <drake/multibody/tree/rigid_body.h>
 #include <drake/multibody/tree/spatial_inertia.h>
-
 #include "drake/geometry/proximity_properties.h"
-
 #include <gflags/gflags.h>
 
-// for the ExternalForceApplicator
-
-#include "drake/common/eigen_types.h"
-#include "drake/multibody/parsing/parser.h"
-#include "drake/multibody/parsing/package_map.h"
+// For the ExternalForceApplicator
 #include "drake/multibody/plant/externally_applied_spatial_force.h"
-#include "drake/multibody/plant/multibody_plant.h"
-#include "drake/multibody/parsing/collision_filter_groups.h"
-#include "drake/systems/analysis/simulator.h"
-#include "drake/systems/framework/diagram_builder.h"
-#include "drake/systems/primitives/constant_vector_source.h"
-#include "drake/visualization/visualization_config_functions.h"
-#include "drake/multibody/plant/discrete_contact_pair.h"
-#include "drake/multibody/plant/contact_results.h"
 #include "drake/math/rigid_transform.h"
-#include <drake/multibody/tree/spatial_inertia.h>
 
 void printVector(const std::string& name, const Eigen::Vector3d& vec) {
     // Print the formatted vector
@@ -104,7 +86,7 @@ Eigen::Vector3d GetAxisSelectionNormalized(const std::string& direction_flag,
 namespace drake {
     namespace multibody {
 
-// Class definition of the LeafSystem which outputs multiple wrenches (forces and torques)
+        // Class definition of the LeafSystem which outputs multiple wrenches (forces and torques)
         class ExternalForceApplicator : public systems::LeafSystem<double> {
         public:
             explicit ExternalForceApplicator(const MultibodyPlant<double>* plant);
@@ -137,7 +119,7 @@ namespace drake {
             std::vector<Eigen::Vector3d> torque_directions_;
         };
 
-// Constructor where we define the callback function of the output port
+        // Constructor where we define the callback function of the output port
         ExternalForceApplicator::ExternalForceApplicator(const MultibodyPlant<double>* plant)
                 : plant_(plant) {
             this->DeclareAbstractOutputPort(
@@ -145,7 +127,7 @@ namespace drake {
                     &ExternalForceApplicator::CalcSpatialForceOutput);
         }
 
-// Method to add a force (unchanged)
+        // Method to add a force
         void ExternalForceApplicator::AddForce(double start_time, double end_time, double force_magnitude, const Eigen::Vector3d& force_direction) {
             start_times_.push_back(start_time);
             end_times_.push_back(end_time);
@@ -157,7 +139,7 @@ namespace drake {
             torque_directions_.push_back(Eigen::Vector3d::Zero());
         }
 
-// New method to add a wrench (force and torque)
+        // Method to add a wrench (force and torque)
         void ExternalForceApplicator::AddWrench(double start_time, double end_time,
                                                 double force_magnitude, const Eigen::Vector3d& force_direction,
                                                 double torque_magnitude, const Eigen::Vector3d& torque_direction) {
@@ -169,7 +151,7 @@ namespace drake {
             torque_directions_.push_back(torque_direction);
         }
 
-// This method specifies what is output from this LeafSystem continually
+        // This method specifies what the output from this LeafSystem continually is
         void ExternalForceApplicator::CalcSpatialForceOutput(
                 const systems::Context<double>& context,
                 std::vector<drake::multibody::ExternallyAppliedSpatialForce<double>>* output) const {
@@ -237,6 +219,28 @@ namespace drake {
             using multibody::HydroelasticContactInfo;
             namespace {
 
+                // This is the Drake Simulation module used in the Master Thesis. This particular file extends the base
+                // simulation with additional force and moment application onto the object which force/moment magnitude,
+                // application time window and direction (expressed in gripper x,y and z-axis) can be specified. The above
+                // extension to the base code of Drake and additional methods make this possible.
+
+                // Part 1: Parse flags set in the command which presumably calls the simulation binary
+                // (This enables a script software for example to automatically run and evaluate simulation instances
+                // for an array of grasp poses predicted by e.g. the Contact-GraspNet neural network. We also avoid
+                // recompiling the simulation with usage of the flags in a precompiled binary).
+                // The above defined flags define for example the position and orientation of the parallel jaw
+                // gripper, its gripper opening, which object to grasp and how long to run the simulation.
+
+                // Additionally, two distinctly different height correction are made possible with the flags:
+                // 1) a correction for the gripper height in direction of the gripper z-axis to accomodate the fact
+                // that Contact-GraspNet gripper width predictions are trained for another gripper model Franka Panda
+                // than the gripper model Robotiq 140 we use in our simulation (and on the real robot at DLR).
+
+                // 2) a table height correction due to 2cm offset from an edge bleeding removal which we use to clean
+                // the partial view point clouds of the unknown objects (more details in the Master Thesis presentation:
+                // https://www.youtube.com/watch?v=LdrG_YuUSac at 15:50)
+
+
                 Eigen::Vector3d parse_position(const std::string& position_str) {
                     std::istringstream iss(position_str);
                     double x, y, z;
@@ -257,9 +261,13 @@ namespace drake {
                     return Eigen::Quaterniond(w, x, y, z).normalized();
                 }
 
-                // Function to predict gripper grasp point for the robotiq 140 for a given opening in meters
+                // Function to predict gripper grasp point for the Robotiq 140 for a given opening in meters
+                // This is the result of System identification in which we fit a polynomial function to the
+                // (gripper with, gripper height) measurements of the real Robotiq 140. This allows
+                // us to predict the height of the gripper given its set gripper width.
+                // This is later used in the gripper height correction from Franka Panda to Robotiq 140.
                 double predict_robotiq140_gripper_grasp_point_height(double cgn_gripper_width) {
-                    // cgn_gripper_width is in meters, so we need to convert it to mm for our original function
+                    // gripper width predicted by neural network is in meters, so we need to convert it to mm for our original function
                     double x_mm = cgn_gripper_width * 1000;
                     double height_mm = 229.644116 + 0.004132*x_mm - 0.000725*std::pow(x_mm, 2) - 0.000004*std::pow(x_mm, 3);
                     // Convert the result back to meters
@@ -314,6 +322,11 @@ namespace drake {
                         return 1;
                     }
 
+                    // We correct the height of the gripper in the gripper z direction to enable an
+                    // adjustment of the predicted pose by the neural network Contact-GraspNet
+                    // which was trained to predict gripper width for a different gripper
+                    // model (Franka Panda)
+
                     drake::math::RotationMatrix<double> orientation_matrix = drake::math::RotationMatrix<double>(parsed_orientation);
 
                     // Extract the z-axis (third column) from the orientation matrix
@@ -337,8 +350,7 @@ namespace drake {
                     // on the Robotiq 140 gripper from its predicted height
                     double robotiq_140_fingerpad_contact_pt = predicted_gripper_height - robotiq_140_fingerpad_length / 2.0;
 
-
-                    // We finally specify the height correction to be the distance in grippper approach (z-axis of gripper)
+                    // We finally specify the height correction to be the distance in gripper approach (z-axis of gripper)
                     // between contact point on the Robotiq 140 and the contact point on the Franka Panda + some manual correction
                     Eigen::Vector3d height_correction = (robotiq_140_fingerpad_contact_pt - franka_panda_hand_contact_pt + manual_correction)  * z_axis;
 
@@ -376,10 +388,9 @@ namespace drake {
                     // Combine default orientation with parsed orientation
                     drake::math::RotationMatrix<double> final_rotation = orientation_matrix * z_rotation;
 
-                    // Output the final rotation matrix with determinant
-                    // std::string final_matrix_str = matrix_to_string_with_det(final_rotation);
-                    // drake::log()->info("Final Rotation matrix:\n{}", final_matrix_str);
 
+                    // Part 2: Simulation of the grasp.
+                    // We load in the necessary files of the gripper, table and object and simulate the grasp process
 
                     auto meshcat = std::make_shared<geometry::Meshcat>();
                     systems::DiagramBuilder<double> builder;
@@ -448,8 +459,6 @@ directives:
                     plant.WeldFrames(
                             plant.world_frame(),
                             plant.GetBodyByName("robotiq_arg2f_base_link").body_frame(),
-                            // math::RigidTransformd(math::RollPitchYawd(M_PI , 0, M_PI),
-                            //                      Eigen::Vector3d(0.2, 0, 0.21)));
                             drake::math::RigidTransform<double>(final_rotation, height_correct_parsed_position));
 
                     plant.Finalize();
@@ -459,11 +468,15 @@ directives:
 
                     visualization::AddDefaultVisualization(&builder, meshcat);
 
+                    // Part 3: Before we finally simulate the grasp we additionally
+                    // specify information about the force and moment applied onto the
+                    // object
+
                     // Create ExternalForceApplicator instance, a Leafsystem which can continually output a force
                     auto external_force_applicator =
                             builder.AddSystem<drake::multibody::ExternalForceApplicator>(&plant);
 
-                    // Force to keep the object standing
+                    // Force to keep the object standing at the beginning of the simulation
                     external_force_applicator->AddForce(0.0, 0.2, 1.0, Vector3d(0, 0, 1));
 
                     // Compute gripper axes
@@ -539,24 +552,6 @@ directives:
                     printVector("Selected force direction", force_direction);
                     printVector("Selected torque direction", torque_direction);
 
-                    // Add a wrench (force and torque)
-                    /*
-                    external_force_applicator->AddWrench(
-                            0.5, 1.0,
-                            500.0, gripper_y_axis.normalized(),   // Force magnitude and direction
-                            0.0, gripper_x_axis);   // Torque magnitude and direction
-                            */
-
-
-                    /*
-                    // Add a wrench (force and torque)
-                    external_force_applicator->AddWrench(
-                            0.5, 1.0,
-                            500.0, good_vector_normalized,   // Force magnitude and normalized direction
-                            0.0, gripper_x_axis);     // Torque magnitude and direction
-                            */
-
-
 
                     // Add the wrench using the selected directions
                     external_force_applicator->AddWrench(
@@ -572,7 +567,7 @@ directives:
 
                     auto diagram = builder.Build();
 
-                    // Set up simulator.
+                    // Simulation of the grasp
                     systems::Simulator simulator(*diagram);
 
                     meshcat->StartRecording(32.0, false);
@@ -582,6 +577,9 @@ directives:
                     const auto& final_context = simulator.get_context();
 
                     const auto& plant_context = diagram->GetSubsystemContext(plant, final_context);
+
+                    // Part 4: Output of the force (and moment) vectors and their locations, the location of the
+                    // object COM and its orientation
 
                     const ContactResults<double>& contact_results =
                             plant.get_contact_results_output_port().Eval<ContactResults<double>>(plant_context);
@@ -623,10 +621,6 @@ directives:
 
                     const drake::math::RotationMatrix<double>& R_WO = X_WO.rotation();
 
-
-                    //std::cout << "Rotation Matrix R_WO:\n" << R_WO.matrix() << std::endl; // doesn't work
-
-
                     Eigen::Quaterniond quat = R_WO.ToQuaternion();
                     std::cout << "Quaternion (x, y, z, w): [" << quat.x() << ", "
                               << quat.y() << ", " << quat.z() << ", " << quat.w() << "]" << std::endl;
@@ -638,11 +632,6 @@ directives:
                               << ", pitch = " << rpy.pitch_angle() * 180.0 / M_PI
                               << ", yaw = " << rpy.yaw_angle() * 180.0 / M_PI << std::endl;
 
-                    /*
-                    std::cout << "Euler angles (radians): roll = " << rpy.roll_angle()
-                              << ", pitch = " << rpy.pitch_angle()
-                              << ", yaw = " << rpy.yaw_angle() << std::endl;
-                              */
 
                     // Pause so that you can see the meshcat output.
                     std::cout << "[Press Ctrl-C to finish]." << std::endl;
