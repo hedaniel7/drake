@@ -100,8 +100,8 @@ drake_cc_binary(
 
 
 drake_cc_binary(
-    name = "robotiq_140_uogp_2024_force_application",
-    srcs = ["robotiq_140_uogp_2024_force_application.cc"],
+    name = "DrakeDynamic",
+    srcs = ["DrakeDynamic.cc"],
     data = [
       "//examples/kuka_iiwa_arm:models",
       "010_potted_meat_can.sdf",
@@ -125,8 +125,56 @@ drake_cc_binary(
 )
 
 drake_cc_binary(
+    name = "robotiq_140_uogp_2024_force_application",
+    srcs = ["DrakeDynamic.cc"],
+    data = [
+      "//examples/kuka_iiwa_arm:models",
+      "010_potted_meat_can.sdf",
+      "010_potted_meat_can_textured.obj",
+      "mesh.sdf",
+      "mesh.obj",
+      "uogp_2024",
+      "robotiq_140_gripper.urdf",
+    ],
+    deps = [
+        "//geometry:meshcat",
+        "//multibody/parsing",
+        "//multibody/plant",
+        "//systems/analysis:simulator",
+        "//systems/framework:diagram",
+        "//systems/lcm:lcm_pubsub_system",
+        "//systems/primitives:constant_vector_source",
+        "//visualization:visualization_config_functions",
+        "@gflags",
+    ],
+)
+
+drake_cc_binary(
+    name = "DrakeStatic",
+    srcs = ["DrakeStatic.cc"],
+    data = [
+      "//examples/kuka_iiwa_arm:models",
+      "010_potted_meat_can.sdf",
+      "010_potted_meat_can_textured.obj",
+      "uogp_2024",
+      "robotiq_140_gripper.urdf",
+    ],
+    deps = [
+        "//geometry:meshcat",
+        "//multibody/parsing",
+        "//multibody/plant",
+        "//systems/analysis:simulator",
+        "//systems/framework:diagram",
+        "//systems/lcm:lcm_pubsub_system",
+        "//systems/primitives:constant_vector_source",
+        "//visualization:visualization_config_functions",
+        "@gflags",
+    ],
+)
+
+drake_cc_binary(
     name = "robotiq_140_uogp_2024",
-    srcs = ["robotiq_140_uogp_2024.cc"],
+    srcs = ["DrakeStatic.cc"],
     data = [
       "//examples/kuka_iiwa_arm:models",
       "010_potted_meat_can.sdf",
