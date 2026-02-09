@@ -23,6 +23,8 @@
 #include "drake/multibody/plant/externally_applied_spatial_force.h"
 #include "drake/math/rigid_transform.h"
 
+namespace {
+
 void printVector(const std::string& name, const Eigen::Vector3d& vec) {
     // Print the formatted vector
     std::cout << name << ": ["
@@ -80,6 +82,8 @@ Eigen::Vector3d GetAxisSelectionNormalized(const std::string& direction_flag,
         throw std::invalid_argument("Invalid axis selection: " + direction_flag);
     }
 }
+
+}  // namespace
 
 
 
@@ -297,12 +301,11 @@ namespace drake {
                     std::cout << "Orientation: " << orientation_str << std::endl;
                     std::cout << "Gripper Opening: " << gripper_opening << " meters" << std::endl;
                     std::cout << "Manual Correction: " << manual_correction << " meters" << std::endl;
-                    std::cout << "Table Correction: " << table_correction << " meters" << std::endl; // Display table_correction
-                    std::cout << "Table Correction: " << table_correction << " meters" << std::endl; // Display table_correction
+                    std::cout << "Table Correction: " << table_correction << " meters" << std::endl;
                     std::cout << "No Height Correction: " << (no_height_correction ? "True" : "False") << std::endl;
-                    std::cout << "Advancing simulation to: " << advance_sim_to << " seconds" << std::endl;  // Display simulation time
-                    std::cout << "force magnitude: " << force_magnitude << std::endl;  // Display simulation time
-                    std::cout << "torque magnitude: " << torque_magnitude << std::endl;  // Display simulation time
+                    std::cout << "Advancing simulation to: " << advance_sim_to << " seconds" << std::endl;
+                    std::cout << "force magnitude: " << force_magnitude << std::endl;
+                    std::cout << "torque magnitude: " << torque_magnitude << std::endl;
                     std::cout << "UOGP Object: " << uogp_object << std::endl;
                     std::cout << "SelectForceDirection: " << select_force_direction << std::endl;
                     std::cout << "SelectMomentDirection: " << select_moment_direction << std::endl;

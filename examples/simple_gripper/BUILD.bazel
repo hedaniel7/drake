@@ -56,8 +56,6 @@ drake_cc_binary(
     srcs = ["robotiq.cc"],
     data = [
       "//examples/kuka_iiwa_arm:models",
-      "010_potted_meat_can.sdf",
-      "010_potted_meat_can_textured.obj",
       "mesh.sdf",
       "mesh.obj",
       "CheezItBox/CheezItBox.urdf",
@@ -80,8 +78,6 @@ drake_cc_binary(
     srcs = ["robotiq_140.cc"],
     data = [
       "//examples/kuka_iiwa_arm:models",
-      "010_potted_meat_can.sdf",
-      "010_potted_meat_can_textured.obj",
       "mesh.sdf",
       "mesh.obj",
       "robotiq_140_gripper.urdf",
@@ -104,8 +100,6 @@ drake_cc_binary(
     srcs = ["DrakeDynamic.cc"],
     data = [
       "//examples/kuka_iiwa_arm:models",
-      "010_potted_meat_can.sdf",
-      "010_potted_meat_can_textured.obj",
       "mesh.sdf",
       "mesh.obj",
       "uogp_2024",
@@ -129,8 +123,6 @@ drake_cc_binary(
     srcs = ["DrakeDynamic.cc"],
     data = [
       "//examples/kuka_iiwa_arm:models",
-      "010_potted_meat_can.sdf",
-      "010_potted_meat_can_textured.obj",
       "mesh.sdf",
       "mesh.obj",
       "uogp_2024",
@@ -154,8 +146,6 @@ drake_cc_binary(
     srcs = ["DrakeStatic.cc"],
     data = [
       "//examples/kuka_iiwa_arm:models",
-      "010_potted_meat_can.sdf",
-      "010_potted_meat_can_textured.obj",
       "uogp_2024",
       "robotiq_140_gripper.urdf",
     ],
@@ -177,8 +167,6 @@ drake_cc_binary(
     srcs = ["DrakeStatic.cc"],
     data = [
       "//examples/kuka_iiwa_arm:models",
-      "010_potted_meat_can.sdf",
-      "010_potted_meat_can_textured.obj",
       "uogp_2024",
       "robotiq_140_gripper.urdf",
     ],
