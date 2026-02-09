@@ -1,17 +1,17 @@
+### Purpose
+
+![alt text](figures/AIMM.png)
+
+![alt text](figures/PipelineNew.jpeg)
+
 This is the Master Thesis MIT Drake Simulation Code used for the simulation
 of the grasps between a parallel jaw gripper (Robotiq 2f 140) and selected objects.
 
+
+
 The main files are (please start reading the code by searching the string 'Part 1:' in these files):
-- [DrakeDynamic.cc](DrakeDynamic.cc) (DrakeDynamic method)
-- [DrakeStatic.cc](DrakeStatic.cc) (DrakeStatic method)
-
-Method names used in the thesis:
-- DrakeStatic (this repository: `DrakeStatic.cc`)
-- DrakeDynamic (this repository: `DrakeDynamic.cc`)
-- AltCGNOnlyStatic (implemented in the companion thesis scripts, e.g. `CGNOnlyForceAnalysis.py`)
-
-Compatibility note:
-- Legacy Bazel target names (`robotiq_140_uogp_2024`, `robotiq_140_uogp_2024_force_application`) are kept for compatibility.
+- [DrakeDynamic.cc](DrakeDynamic.cc) (dynamic grasp simulation with force/torque application)
+- [DrakeStatic.cc](DrakeStatic.cc) (static grasp simulation at equilibrium)
 
 and the object file folders in [uogp_2024](uogp_2024) (sidenote: 'uogp' stands for 
 unknown objects grasp planner and was a project name used for my Master Thesis project):
@@ -45,15 +45,34 @@ https://elib.dlr.de/195724/
 
 To use these results here, one needs to [install drake](https://drake.mit.edu/installation.html) first
 
-An example simulation binary call (after a bazel build of this folder) 
-with some example flags (which could be automatically run by a script; 
+An example simulation binary call (after a bazel build of this folder)
+with some example flags (which could be automatically run by a script;
 That script then could for example automatically run and
 evaluate multiple grasp poses predicted by the Contact-GraspNet neural network) would be:
-- drake/examples/simple_gripper$ /home/dan/Projects/DrakeForks/MasterThesisDrakeModule/drake/bazel-bin/examples/simple_gripper/DrakeDynamic --position=0.192292,0.079613,-0.016357 --orientation=-0.514892,-0.518741,0.615273,0.295354 --gripper_opening=0.048694 --manual_correction=0.0 --table_correction=-0.11498 --NoHeightCorrection --uogp_object=Sprayer --advanceSimTo=0.7 --SelectForceDirection=y --SelectMomentDirection=x --force_start=0.55 --force_end=0.56 --force_magnitude=180.5
+```
+bazel run //examples/simple_gripper:DrakeDynamic -- \
+  --position=0.192292,0.079613,-0.016357 \
+  --orientation=-0.514892,-0.518741,0.615273,0.295354 \
+  --gripper_opening=0.048694 \
+  --manual_correction=0.0 \
+  --table_correction=-0.11498 \
+  --NoHeightCorrection \
+  --uogp_object=Sprayer \
+  --advanceSimTo=0.7 \
+  --SelectForceDirection=y \
+  --SelectMomentDirection=x \
+  --force_start=0.55 \
+  --force_end=0.56 \
+  --force_magnitude=180.5
+```
 
 That would rerun the DrakeDynamic results stored in a CSV (MasterThesisMethodsCode folder)
-with additional settings set by Command line flags
+with additional settings set by command line flags
+
+
+![alt text](figures/Average_MinMaxScores_AllObjects.png)
 
 
 More information about the Master Thesis can be found in this Video presentation:
 https://www.youtube.com/watch?v=LdrG_YuUSac
+
