@@ -130,6 +130,41 @@ This yields the following force pertubation test result:
 
 DrakeDynamic is a force pertubation test used as the ground-truth evaluation in the results section.
 
+### Batch Evaluation Automation
+
+To evaluate many grasp hypotheses automatically (the same pattern used in the thesis experiments), use:
+
+- `examples/simple_gripper/thesis_eval/run_drake_static_batch.py`
+- `examples/simple_gripper/thesis_eval/run_drake_dynamic_batch.py`
+
+Both scripts run Drake subprocesses with CLI flags per grasp row and write result CSVs.
+
+Example static batch run:
+```bash
+python examples/simple_gripper/thesis_eval/run_drake_static_batch.py \
+  --input_csv /home/dan/Projects/MasterThesisFolder/Code/Sprayer/object_1_UOGPLog_heightCorrected.csv \
+  --mesh_path /home/dan/Projects/MasterThesisFolder/Code/Sprayer/Sprayer.obj \
+  --uogp_object Sprayer \
+  --ids 0,1,2
+```
+
+Example dynamic batch run (same force/moment style as above single-run command):
+```bash
+python examples/simple_gripper/thesis_eval/run_drake_dynamic_batch.py \
+  --input_csv /home/dan/Projects/MasterThesisFolder/Code/Sprayer/object_1_UOGPLog_heightCorrected.csv \
+  --mesh_path /home/dan/Projects/MasterThesisFolder/Code/Sprayer/Sprayer.obj \
+  --uogp_object Sprayer \
+  --ids 0,1,2 \
+  --force_magnitude 180.5 \
+  --force_direction y \
+  --moment_direction x
+```
+
+Notes:
+- Defaults assume binaries are built at `bazel-bin/examples/simple_gripper/DrakeStatic` and `.../DrakeDynamic`.
+- Scripts accept explicit `--binary` if you use a different build/output path.
+- For full options, see `python .../run_drake_static_batch.py --help` and `python .../run_drake_dynamic_batch.py --help`.
+
 ### Results
 
 <p align="center">
@@ -137,4 +172,3 @@ DrakeDynamic is a force pertubation test used as the ground-truth evaluation in 
 </p>
 
 DrakeStatic (physics simulation based grasp evaluation) achieves a 9% higher average score than CGNNative (the baseline neural network ranking), evaluated against DrakeDynamic as ground truth.
-
