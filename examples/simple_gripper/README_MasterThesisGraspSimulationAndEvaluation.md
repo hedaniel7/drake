@@ -6,12 +6,16 @@
 
 DLR's (German Aerospace Center) AIMM (Autonomous Industrial Mobile Manipulator) robot uses a parallel jaw gripper (Robotiq 2f-140) to pick up objects.
 
-![AIMM robot](figures/AIMM.png)
+<p align="center">
+  <img src="figures/AIMM.png" alt="AIMM robot" width="50%">
+</p>
 
 
 Contact-GraspNet is a neural network that predicts grasps for partial view point cloud of an unknown object. The problem is: how do we know which of the many grasps predicted by the neural network are good and which are not? As seen in the image below, the best grasp natively ranked by Contact-GraspNet is not a good grasp. It is a decentral grasp (green), while it is easy to see that a central grasp (blue) would be better.
 
-![Suboptimal best grasp natively ranked by Contact-GraspNet](figures/SuboptimalBestGrasp.png)
+<p align="center">
+  <img src="figures/SuboptimalBestGrasp.png" alt="Suboptimal best grasp natively ranked by Contact-GraspNet" width="50%">
+</p>
 
 It is easy for us humans to see that the central grasp is a better grasp due to our physical intuition. My idea was to infuse that physical intuition into the grasp evaluation and selection process by using MIT's Drake simulation engine to simulate the grasps and evaluate their quality using four metrics. Below is the pipeline I came up with:
 
@@ -29,9 +33,45 @@ The pipeline combines three neural networks with physics simulation:
 
 **Output:** A quality score for each grasp candidate, used to re-rank grasps before execution on the real robot.
 
+### Contributions
+
+This thesis work includes:
+
+- Design and implementation of an unknown-objects grasping pipeline
+- Physics-simulation-based grasp filtering using four grasp quality metrics
+- Comparative evaluation of three methods for unknown-objects grasping:
+  `CGNNative`, `DrakeStatic`, and `AltCGNOnlyStatic`
+- Experimental evaluation of these methods on real-system data from DLR's AIMM setup
+
 ### Grasp Quality Metrics
 
 ![Four Grasp Quality Metrics](figures/GraspQualityMetrics.png)
+
+#### Contact and Friction Model (Soft Finger)
+
+The four metrics are computed from contact forces and contact points produced by Drake.
+Following Section 3.2.1 of the thesis, each grasp is represented with:
+
+- an object frame centered at the object's COM,
+- one local contact frame per contact point,
+- local contact-frame `z` axes aligned with the simulated normal force directions.
+
+This work uses the **soft finger** contact model. In local contact frame `C_i`, admissible
+contact wrench components satisfy:
+
+- `||f_T|| <= mu * ||f_N||`
+- `f_z >= 0`
+- `|tau_z| <= gamma * f_z`
+
+where `mu` is the friction coefficient and `gamma` is the torsional friction coefficient.
+
+For numerical evaluation, the friction cone is approximated with spanning vectors
+(friction-cone discretization), and resulting force/moment sets are used to compute
+the epsilon and grasp-quality metrics.
+
+<p align="center">
+  <img src="figures/SoftFingerContactModel.png" alt="Soft finger contact model and friction cone approximation" width="70%">
+</p>
 
 Four metrics are used to evaluate grasp quality:
 
@@ -52,6 +92,11 @@ The main files are:
 
 and the object file folders in [uogp_2024](uogp_2024) (sidenote: 'uogp' stands for 
 unknown objects grasp planner and was a project name used for my Master Thesis project):
+
+<p align="center">
+  <img src="figures/AllObjects.png" alt="All objects used in the thesis experiments" width="50%">
+</p>
+
 - [Bowl](uogp_2024%2FBowl)
 - [CheezItBox](uogp_2024%2FCheezItBox)
 - [CoconutMilkCan](uogp_2024%2FCoconutMilkCan)
@@ -62,7 +107,6 @@ unknown objects grasp planner and was a project name used for my Master Thesis p
 - [WaterBottle](uogp_2024%2FWaterBottle)
 - [WoodBlock](uogp_2024%2FWoodBlock)
 - [YogaBall](uogp_2024%2FYogaBall)
-
 
 Each object folder has an object mesh file and simulation settings detailing
 object properties like weight and hydroelastic modulus used for the
@@ -99,7 +143,7 @@ bazel run //examples/simple_gripper:DrakeStatic -- \
 
 This yields the following static grasp pose:
 <p align="center">
-  <img src="figures/DrakeStatic.png" alt="DrakeStatic Simulation result" width="70%">
+  <img src="figures/DrakeStatic.png" alt="DrakeStatic Simulation result" width="50%">
 </p>
 
 Dynamic perturbation run (force / moment application):
@@ -122,10 +166,10 @@ bazel run //examples/simple_gripper:DrakeDynamic -- \
 
 This yields the following force pertubation test result:
 <p align="center">
-  <img src="figures/DrakeDynamic1.png" alt="DrakeDynamic Simulation result start" width="70%">
+  <img src="figures/DrakeDynamic1.png" alt="DrakeDynamic Simulation result start" width="50%">
 </p>
 <p align="center">
-  <img src="figures/DrakeDynamic2.png" alt="DrakeDynamic Simulation result end" width="70%">
+  <img src="figures/DrakeDynamic2.png" alt="DrakeDynamic Simulation result end" width="50%">
 </p>
 
 DrakeDynamic is a force pertubation test used as the ground-truth evaluation in the results section.
@@ -138,6 +182,8 @@ To evaluate many grasp hypotheses automatically (the same pattern used in the th
 - `examples/simple_gripper/thesis_eval/run_drake_dynamic_batch.py`
 
 Both scripts run Drake subprocesses with CLI flags per grasp row and write result CSVs.
+`AltCGNOnlyStatic.py` is different: it already processes many grasps in one script run and does not launch Drake subprocesses per grasp.
+In other words, for AltCGNOnlyStatic, the batch behavior comes from one Python pass over the CSV, not from external simulation calls.
 
 Example static batch run:
 ```bash
@@ -207,7 +253,28 @@ Observed on this machine during validation:
 ### Results
 
 <p align="center">
-  <img src="figures/Average_MinMaxScores_AllObjects.png" alt="Results: Average scores across all objects" width="70%">
+  <img src="figures/AllObjectsBestGrasps.png" alt="Best grasp per evaluation method across objects" width="70%">
+</p>
+<p>
+Best-grasp comparison across evaluation methods. Each row shows one object,
+and columns are ordered left to right as: ground truth (DrakeDynamic),
+CGNNative, DrakeStatic, and AltCGNOnlyStatic. Objects shown are
+(a) Bowl, (b) Coconut Milk Can, (c) Soda Can, (d) Soft Massage Ball,
+(e) Tape, (f) Water Bottle, and (g) Wood Block.
+</p>
+
+<p align="center">
+  <img src="figures/Average_MinMaxScores_AllObjects.png" alt="Results: Average scores across all objects" width="50%">
 </p>
 
 DrakeStatic (physics simulation based grasp evaluation) achieves a 9% higher average score than CGNNative (the baseline neural network ranking), evaluated against DrakeDynamic as ground truth.
+
+### Limitations
+
+Main limitations of this thesis setup (see Discussion / Conclusion in the thesis PDF):
+
+- **Asymmetric filtering from edge-bleeding handling:** table-height and filtering corrections affected objects differently, which reduced comparability across objects.
+- **Shape-completion artifacts:** some reconstructed meshes contained geometric artifacts (for example bowl and water bottle cases) that affected contact behavior in simulation.
+- **Small effective dataset:** only a limited subset of recorded objects produced stable, usable meshes and comparable grasps.
+- **Ground-truth method limitations (DrakeDynamic):** this ground-truth method is itself also simulation-based (not measured directly on the real robot). The force-test protocol can be direction-biased and uses final displacement as a proxy for stability, which can overestimate some grasps.
+- **Comparison coupling:** for consistency, parts of the evaluation used additional filtering alignment between methods, which may exclude otherwise valid grasps.
