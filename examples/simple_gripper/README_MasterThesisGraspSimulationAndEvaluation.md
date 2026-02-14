@@ -59,11 +59,11 @@ Following Section 3.2.1 of the thesis, each grasp is represented with:
 This work uses the **soft finger** contact model. In local contact frame `C_i`, admissible
 contact wrench components satisfy:
 
-- `||f_T|| <= mu * ||f_N||`
-- `f_z >= 0`
-- `|tau_z| <= gamma * f_z`
+- `||f_T|| <= mu * f_N`  (Coulomb friction constraint)
+- `f_N >= 0`  (contact is compressive, no suction)
+- `|tau_z| <= gamma * f_N`  (torsional friction limit)
 
-where `mu` is the friction coefficient and `gamma` is the torsional friction coefficient.
+where `f_T` is the tangential contact force, `f_N` is the normal contact force magnitude (= `f_z` in the contact frame, since the z-axis is aligned with the surface normal), `tau_z` is the torsional moment about the contact normal, `mu` is the friction coefficient, and `gamma` is the torsional friction coefficient.
 
 For numerical evaluation, the friction cone is approximated with spanning vectors
 (friction-cone discretization), and resulting force/moment sets are used to compute
@@ -94,7 +94,7 @@ and the object file folders in [uogp_2024](uogp_2024) (sidenote: 'uogp' stands f
 unknown objects grasp planner and was a project name used for my Master Thesis project):
 
 <p align="center">
-  <img src="figures/AllObjects.png" alt="All objects used in the thesis experiments" width="50%">
+  <img src="figures/AllObjects.png" alt="All objects used in the thesis experiments" width="100%">
 </p>
 
 - [Bowl](uogp_2024%2FBowl)
@@ -176,79 +176,61 @@ DrakeDynamic is a force pertubation test used as the ground-truth evaluation in 
 
 ### Batch Evaluation Automation
 
-To evaluate many grasp hypotheses automatically (the same pattern used in the thesis experiments), use:
+To evaluate many grasp hypotheses automatically, use:
 
 - `examples/simple_gripper/thesis_eval/run_drake_static_batch.py`
 - `examples/simple_gripper/thesis_eval/run_drake_dynamic_batch.py`
 
-Both scripts run Drake subprocesses with CLI flags per grasp row and write result CSVs.
-`AltCGNOnlyStatic.py` is different: it already processes many grasps in one script run and does not launch Drake subprocesses per grasp.
-In other words, for AltCGNOnlyStatic, the batch behavior comes from one Python pass over the CSV, not from external simulation calls.
+Both scripts iterate grasp rows from a CSV and launch Drake once per grasp.
+`AltCGNOnlyStatic.py` is different: it already batches in one Python run and does not launch Drake subprocesses per grasp.
 
-Example static batch run:
+From the Drake workspace root:
 ```bash
+DATA_DIR=<DATA_DIR>/Sprayer
+INPUT_CSV="$DATA_DIR/object_1_UOGPLog_heightCorrected.csv"
+MESH_OBJ="$DATA_DIR/Sprayer.obj"
+
+# Verified static IDs on this setup: 0,2
 python examples/simple_gripper/thesis_eval/run_drake_static_batch.py \
-  --input_csv /home/dan/Projects/MasterThesisFolder/Code/Sprayer/object_1_UOGPLog_heightCorrected.csv \
-  --mesh_path /home/dan/Projects/MasterThesisFolder/Code/Sprayer/Sprayer.obj \
+  --input_csv "$INPUT_CSV" \
+  --output_csv /tmp/sprayer_static_ids0_2.csv \
+  --mesh_path "$MESH_OBJ" \
   --uogp_object Sprayer \
-  --ids 0,1,2
-```
+  --ids 0,2
 
-Example dynamic batch run (same force/moment style as above single-run command):
-```bash
+# Verified dynamic IDs on this setup: 0,1
 python examples/simple_gripper/thesis_eval/run_drake_dynamic_batch.py \
-  --input_csv /home/dan/Projects/MasterThesisFolder/Code/Sprayer/object_1_UOGPLog_heightCorrected.csv \
-  --mesh_path /home/dan/Projects/MasterThesisFolder/Code/Sprayer/Sprayer.obj \
+  --input_csv "$INPUT_CSV" \
+  --output_csv /tmp/sprayer_dynamic_ids0_1.csv \
+  --mesh_path "$MESH_OBJ" \
   --uogp_object Sprayer \
-  --ids 0,1,2 \
+  --ids 0,1 \
   --force_magnitude 180.5 \
   --force_direction y \
   --moment_direction x
 ```
 
-Notes:
-- Defaults assume binaries are built at `bazel-bin/examples/simple_gripper/DrakeStatic` and `.../DrakeDynamic`.
-- Scripts accept explicit `--binary` if you use a different build/output path.
-- For full options, see `python .../run_drake_static_batch.py --help` and `python .../run_drake_dynamic_batch.py --help`.
-
-Tested sample (AIMM-derived Sprayer data from the local `Code` folder):
+AltCGNOnlyStatic baseline (with visualization, random 15% sample):
 ```bash
-# DrakeStatic batch (2 grasps)
-python examples/simple_gripper/thesis_eval/run_drake_static_batch.py \
-  --input_csv /home/dan/Projects/MasterThesisFolder/Code/Sprayer/object_1_UOGPLog_heightCorrected.csv \
-  --output_csv /tmp/sprayer_static_ids0_1.csv \
-  --mesh_path /home/dan/Projects/MasterThesisFolder/Code/Sprayer/Sprayer.obj \
-  --uogp_object Sprayer \
-  --ids 0,1 \
-  --quiet
+ALT_DATA_DIR=<DATA_DIR>/WaterBottle
+ALT_INPUT_CSV="$ALT_DATA_DIR/object_1_UOGPLog_heightCorrected.csv"
+ALT_MESH_OBJ="$ALT_DATA_DIR/WaterBottle.obj"
 
-# DrakeDynamic batch (5 grasps)
-python examples/simple_gripper/thesis_eval/run_drake_dynamic_batch.py \
-  --input_csv /home/dan/Projects/MasterThesisFolder/Code/Sprayer/object_1_UOGPLog_heightCorrected.csv \
-  --output_csv /tmp/sprayer_dynamic_ids0_4.csv \
-  --mesh_path /home/dan/Projects/MasterThesisFolder/Code/Sprayer/Sprayer.obj \
-  --uogp_object Sprayer \
-  --ids 0,1,2,3,4 \
-  --force_magnitude 180.5 \
-  --force_direction y \
-  --moment_direction x \
-  --quiet
-
-# AltCGNOnlyStatic baseline (2 grasps, headless)
-cp /home/dan/Projects/MasterThesisFolder/Code/Sprayer/object_1_UOGPLog_heightCorrected.csv \
-  /tmp/sprayer_altcgn_ids0_1.csv
-/home/dan/Projects/MasterThesisFolder/.venv_altcgn/bin/python \
-  examples/simple_gripper/AltCGNOnlyStatic.py \
-  --input_csv /tmp/sprayer_altcgn_ids0_1.csv \
-  --mesh_path /home/dan/Projects/MasterThesisFolder/Code/Sprayer/Sprayer.obj \
-  --ids 0,1 \
-  --NoVisualization
+python examples/simple_gripper/AltCGNOnlyStatic.py \
+  --input_csv "$ALT_INPUT_CSV" \
+  --mesh_path "$ALT_MESH_OBJ" \
+  --VizPercentage 15 \
+  --RandomSeed 42
 ```
 
-Observed on this machine during validation:
-- `DrakeStatic` (`ids 0,1`): 1 success / 1 failed
-- `DrakeDynamic` (`ids 0..4`): 3 success / 2 failed
-- `AltCGNOnlyStatic` (`ids 0,1`): 0 success / 2 failed
+Notes:
+- Replace `<DATA_DIR>` with your object-data folder containing the CSV and OBJ mesh.
+- Defaults assume binaries in `bazel-bin/examples/simple_gripper/`; use `--binary` to override.
+- Batch scripts are intended for CSV generation, not interactive inspection: they auto-finish each Drake run.
+- If you want to inspect the scene in MeshCat (`http://localhost:7000/`), run `DrakeStatic` or `DrakeDynamic` directly with a single grasp command from the **Build and Run** section.
+- Add `--quiet` only if you want less subprocess log output.
+- For headless AltCGNOnlyStatic runs (no Open3D window), add `--NoVisualization`.
+- AltCGNOnlyStatic does not apply Drake's gripper height correction flags; it evaluates the grasp poses directly from the input CSV against the selected object mesh.
 
 ### Results
 
@@ -264,7 +246,7 @@ CGNNative, DrakeStatic, and AltCGNOnlyStatic. Objects shown are
 </p>
 
 <p align="center">
-  <img src="figures/Average_MinMaxScores_AllObjects.png" alt="Results: Average scores across all objects" width="50%">
+  <img src="figures/Average_MinMaxScores_AllObjects.png" alt="Results: Average scores across all objects" width="80%">
 </p>
 
 DrakeStatic (physics simulation based grasp evaluation) achieves a 9% higher average score than CGNNative (the baseline neural network ranking), evaluated against DrakeDynamic as ground truth.
@@ -278,3 +260,7 @@ Main limitations of this thesis setup (see Discussion / Conclusion in the thesis
 - **Small effective dataset:** only a limited subset of recorded objects produced stable, usable meshes and comparable grasps.
 - **Ground-truth method limitations (DrakeDynamic):** this ground-truth method is itself also simulation-based (not measured directly on the real robot). The force-test protocol can be direction-biased and uses final displacement as a proxy for stability, which can overestimate some grasps.
 - **Comparison coupling:** for consistency, parts of the evaluation used additional filtering alignment between methods, which may exclude otherwise valid grasps.
+
+### Master Thesis
+
+For further details, please read the full master thesis: [Physics Simulation Based Grasp Evaluation (PDF)](https://drive.google.com/file/d/1C8ZW7rYitUK_JMPhP74w9mC_RICNlwHJ/view?usp=sharing)
