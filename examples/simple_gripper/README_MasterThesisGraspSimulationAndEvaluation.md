@@ -165,6 +165,45 @@ Notes:
 - Scripts accept explicit `--binary` if you use a different build/output path.
 - For full options, see `python .../run_drake_static_batch.py --help` and `python .../run_drake_dynamic_batch.py --help`.
 
+Tested sample (AIMM-derived Sprayer data from the local `Code` folder):
+```bash
+# DrakeStatic batch (2 grasps)
+python examples/simple_gripper/thesis_eval/run_drake_static_batch.py \
+  --input_csv /home/dan/Projects/MasterThesisFolder/Code/Sprayer/object_1_UOGPLog_heightCorrected.csv \
+  --output_csv /tmp/sprayer_static_ids0_1.csv \
+  --mesh_path /home/dan/Projects/MasterThesisFolder/Code/Sprayer/Sprayer.obj \
+  --uogp_object Sprayer \
+  --ids 0,1 \
+  --quiet
+
+# DrakeDynamic batch (5 grasps)
+python examples/simple_gripper/thesis_eval/run_drake_dynamic_batch.py \
+  --input_csv /home/dan/Projects/MasterThesisFolder/Code/Sprayer/object_1_UOGPLog_heightCorrected.csv \
+  --output_csv /tmp/sprayer_dynamic_ids0_4.csv \
+  --mesh_path /home/dan/Projects/MasterThesisFolder/Code/Sprayer/Sprayer.obj \
+  --uogp_object Sprayer \
+  --ids 0,1,2,3,4 \
+  --force_magnitude 180.5 \
+  --force_direction y \
+  --moment_direction x \
+  --quiet
+
+# AltCGNOnlyStatic baseline (2 grasps, headless)
+cp /home/dan/Projects/MasterThesisFolder/Code/Sprayer/object_1_UOGPLog_heightCorrected.csv \
+  /tmp/sprayer_altcgn_ids0_1.csv
+/home/dan/Projects/MasterThesisFolder/.venv_altcgn/bin/python \
+  examples/simple_gripper/AltCGNOnlyStatic.py \
+  --input_csv /tmp/sprayer_altcgn_ids0_1.csv \
+  --mesh_path /home/dan/Projects/MasterThesisFolder/Code/Sprayer/Sprayer.obj \
+  --ids 0,1 \
+  --NoVisualization
+```
+
+Observed on this machine during validation:
+- `DrakeStatic` (`ids 0,1`): 1 success / 1 failed
+- `DrakeDynamic` (`ids 0..4`): 3 success / 2 failed
+- `AltCGNOnlyStatic` (`ids 0,1`): 0 success / 2 failed
+
 ### Results
 
 <p align="center">
