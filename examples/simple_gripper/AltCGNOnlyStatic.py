@@ -194,6 +194,8 @@ def main():
                         help='Random seed for grasp selection (default: 42)')
     parser.add_argument('--NoApproach', action='store_true',
                         help='Do not visualize approach poses')
+    parser.add_argument('--NoVisualization', action='store_true',
+                        help='Skip Open3D visualization window (useful for headless runs)')
     parser.add_argument('--input_csv', type=str, default='object_1_UOGPLog_heightCorrected.csv',
                         help='Path to input CSV file (default: object_1_UOGPLog_heightCorrected.csv)')
     parser.add_argument('--mesh_path', type=str, default='./CoconutMilkCan.obj',
@@ -490,7 +492,8 @@ def main():
         vis.run()
         vis.destroy_window()
 
-    custom_draw_geometries([mesh, *geometries])
+    if not args.NoVisualization:
+        custom_draw_geometries([mesh, *geometries])
 
 if __name__ == "__main__":
     main()
