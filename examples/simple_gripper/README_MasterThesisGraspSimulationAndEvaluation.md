@@ -21,27 +21,35 @@ It is easy for us humans to see that the central grasp is a better grasp due to 
 
 ![Pipeline](figures/PipelineNew.jpeg)
 
-**Input:** Partial-view point cloud synthesized from the AIMM's 3-camera system (RGB-D).
+The pipeline starts from a partial-view point cloud captured by the robot's 3-camera system (RGB-D). INSTR segments individual objects. Contact-GraspNet then generates 6-DoF grasp pose candidates from the segmented point cloud. Simultaneously, Shape Completion (Humt et al.) reconstructs the full 3D mesh of the unknown object from the partial observation (this is necessary because the physics simulation requires complete object geometry).
 
-The pipeline combines three neural networks with physics simulation:
+These two outputs — grasp poses and a complete object mesh — are the shared inputs to all three evaluation methods:
 
-1. **INSTR** segments the scene to isolate individual objects from the RGB-D input.
-2. **Contact-GraspNet (CGN)** generates 6-DoF grasp pose candidates from the partial-view point cloud.
-3. **Shape Completion** reconstructs a full 3D mesh from the partial point cloud, needed because the physics simulation requires a complete object geometry.
-4. **Drake Simulation** (this repository) takes the grasp poses and the completed mesh, simulates each grasp with hydroelastic contact modeling, and outputs contact force vectors.
-5. **Grasp Quality Metrics** (this repository) evaluates the simulated contact forces using the four metrics described below.
+### Evaluation Methods
 
-**Output:** A quality score for each grasp candidate, used to re-rank grasps before execution on the real robot.
+#### DrakeStatic
 
-### Contributions
+For each grasp candidate, the parallel-jaw gripper is placed at the predicted pose on the reconstructed object mesh, the gripper closes, and the Drake hydroelastic simulation runs to a fixed end time. The contact information at the end of the run (contact forces, contact points, object COM) is used to compute four grasp quality metrics: epsilon linear, epsilon rotational, grasp-matrix minimum singular value, and centroid-to-COM distance. These normalized metrics are combined with fixed weights into one final DrakeStatic score used to re-rank the grasp candidates.
 
-This thesis work includes:
+<p align="center">
+  <img src="figures/MethodDrakeStatic.png" alt="DrakeStatic evaluation method" width="100%">
+</p>
 
-- Design and implementation of an unknown-objects grasping pipeline
-- Physics-simulation-based grasp filtering using four grasp quality metrics
-- Comparative evaluation of three methods for unknown-objects grasping:
-  `CGNNative`, `DrakeStatic`, and `AltCGNOnlyStatic`
-- Experimental evaluation of these methods on real-system data from DLR's AIMM setup
+#### DrakeDynamic
+
+A ground-truth evaluation method. The simulation setup is the same as DrakeStatic, but after the gripper closes on the object, an external force is applied along selected axes. The object's displacement after perturbation measures how well the grasp resists disturbance. This serves as the reference score against which the other methods are compared.
+
+<p align="center">
+  <img src="figures/MethodDrakeDynamic.png" alt="DrakeDynamic evaluation method" width="100%">
+</p>
+
+#### AltCGNOnlyStatic
+
+A no-simulation baseline. Instead of running Drake, contact forces are estimated geometrically by ray-casting from the gripper finger pads onto the object mesh and using the surface normals at intersection points as approximate contact force directions. The same four grasp quality metrics are then applied. This tests whether the computationally costly physics simulation actually adds value over a computationally cheap pure-geometry evaluation method.
+
+<p align="center">
+  <img src="figures/MethodAltCGNOnlyStatic.png" alt="AltCGNOnlyStatic evaluation method" width="100%">
+</p>
 
 ### Grasp Quality Metrics
 
@@ -75,9 +83,9 @@ the epsilon and grasp-quality metrics.
 
 Four metrics are used to evaluate grasp quality:
 
-1. **Epsilon Metric (Linear)** -- The epsilon metric linear calculation is based on the grasp wrench hull analysis, which computes the convex hull of all forces and moments acting on the object’s center of mass
+1. **Epsilon Metric (Linear)** -- The epsilon metric linear calculation is based on the grasp wrench hull analysis, which computes the convex hull of all forces and moments acting on the object's center of mass
 2. **Epsilon Metric (Rotational)** -- The rotational epsilon metric examines the rotational grasp wrench hull spanned by torques acting on the object. This metric accounts for both the torques induced by the approximated friction cone spanning linear forces and the additional moments
-3. **Distance Centroid to COM** -- The distance between the centroid of the two contact points and the object’s COM quantifies how centered a grasp is relative to the object’s COM. This metric works well for regular convex shapes but becomes inaccurate for objects like toroids, where stable grasps can occur despite larger centroid-COM distances.
+3. **Distance Centroid to COM** -- The distance between the centroid of the two contact points and the object's COM quantifies how centered a grasp is relative to the object's COM. This metric works well for regular convex shapes but becomes inaccurate for objects like toroids, where stable grasps can occur despite larger centroid-COM distances.
 4. **Grasp Matrix Minimum Singular Value** -- Minimum singular value of the grasp matrix G. Measures how far the grasp configuration is from singularity (losing wrench resistance in some direction).
 
 
@@ -85,9 +93,9 @@ Four metrics are used to evaluate grasp quality:
 ### Repository Content
 
 The main files are:
-- [DrakeDynamic.cc](DrakeDynamic.cc) -- dynamic grasp simulation with external force/torque application
 - [DrakeStatic.cc](DrakeStatic.cc) -- static grasp simulation at equilibrium
-- [AltCGNOnlyStatic.py](AltCGNOnlyStatic.py) -- alternative evaluation method that estimates contact forces via geometric ray-casting (no Drake simulation), used as a comparison baseline
+- [DrakeDynamic.cc](DrakeDynamic.cc) -- dynamic grasp simulation with external force application
+- [AltCGNOnlyStatic.py](AltCGNOnlyStatic.py) -- no-simulation baseline using geometric ray-casting for contact estimation
 - [drake_grasp_quality_metrics.py](drake_grasp_quality_metrics.py) -- grasp quality metrics computation (epsilon, singular value, centroid-COM distance)
 
 and the object file folders in [uogp_2024](uogp_2024) (sidenote: 'uogp' stands for 
@@ -146,7 +154,7 @@ This yields the following static grasp pose:
   <img src="figures/DrakeStatic.png" alt="DrakeStatic Simulation result" width="50%">
 </p>
 
-Dynamic perturbation run (force / moment application):
+Dynamic perturbation run (force application):
 ```bash
 bazel run //examples/simple_gripper:DrakeDynamic -- \
   --position=0.192292,0.079613,-0.016357 \
@@ -164,15 +172,13 @@ bazel run //examples/simple_gripper:DrakeDynamic -- \
   --force_magnitude=180.5
 ```
 
-This yields the following force pertubation test result:
+This yields the following force perturbation test result:
 <p align="center">
   <img src="figures/DrakeDynamic1.png" alt="DrakeDynamic Simulation result start" width="50%">
 </p>
 <p align="center">
   <img src="figures/DrakeDynamic2.png" alt="DrakeDynamic Simulation result end" width="50%">
 </p>
-
-DrakeDynamic is a force pertubation test used as the ground-truth evaluation in the results section.
 
 ### Batch Evaluation Automation
 
