@@ -11,7 +11,7 @@ DLR's (German Aerospace Center) AIMM (Autonomous Industrial Mobile Manipulator) 
 </p>
 
 
-Contact-GraspNet is a neural network that predicts grasps for partial view point cloud of an unknown object. The problem is: how do we know which of the many grasps predicted by the neural network are good and which are not? As seen in the image below, the best grasp natively ranked by Contact-GraspNet is not a good grasp. It is a decentral grasp (green), while it is easy to see that a central grasp (blue) would be better.
+Contact-GraspNet is a neural network that predicts grasps for a partial-view point cloud of an unknown object. The problem is: how do we know which of the many grasps predicted by the neural network are good and which are not? As seen in the image below, the best grasp natively ranked by Contact-GraspNet is not a good grasp. It is a decentralized grasp (green), while it is easy to see that a central grasp (blue) would be better.
 
 <p align="center">
   <img src="figures/SuboptimalBestGrasp.png" alt="Suboptimal best grasp natively ranked by Contact-GraspNet" width="50%">
@@ -45,7 +45,7 @@ A ground-truth evaluation method. The simulation setup is the same as DrakeStati
 
 #### AltCGNOnlyStatic
 
-A no-simulation baseline. Instead of running Drake, contact forces are estimated geometrically by ray-casting from the gripper finger pads onto the object mesh and using the surface normals at intersection points as approximate contact force directions. The same four grasp quality metrics are then applied. This tests whether the computationally costly physics simulation actually adds value over a computationally cheap pure-geometry evaluation method.
+A no-simulation baseline. Instead of running Drake, contact forces are estimated geometrically by ray-casting from the gripper finger pads onto the object mesh and using the surface normals at intersection points as approximate contact force directions. The same four grasp quality metrics are then applied in the grasp-quality evaluation step. This tests whether the computationally costly physics simulation actually adds value over a computationally cheap pure-geometry evaluation method.
 
 <p align="center">
   <img src="figures/MethodAltCGNOnlyStatic.png" alt="AltCGNOnlyStatic evaluation method" width="100%">
@@ -134,7 +134,7 @@ bazel build //examples/simple_gripper:DrakeStatic //examples/simple_gripper:Drak
 ```
 
 Notes:
-- `--orientation` is parsed as quaternion`x,y,z,w`.
+- `--orientation` is parsed as quaternion `w,x,y,z`.
 
 Example run (static simulation, matches the screenshot below):
 ```bash
